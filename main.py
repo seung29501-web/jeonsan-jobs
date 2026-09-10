@@ -3,57 +3,69 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 
+KEYWORDS = ["전산", "IT", "정보", "소프트웨어", "데이터", "시스템", "개발", "보안", "네트워크", "디지털"]
+EXCLUDE_TYPES = ["청년인턴", "체험형", "비정규직"]
+
 def fetch_jobs():
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     })
 
-    session.get("https://job.alio.go.kr/recruit.do")
+    all_jobs = []
 
-    data = {
-        "pageIndex": "1",
-        "pageUnit": "100",
-        "srch_state": "ing",
-        "srch_work_type_main": "전산직",
-        "srch_career_type": "정규직",
-    }
+    for page in range(1, 6):
+        session.get("https://job.alio.go.kr/recruit.do")
+        data = {
+            "pageIndex": str(page),
+            "pageUnit": "50",
+            "srch_state": "ing",
+        }
+        resp = session.post("https://job.alio.go.kr/recruit.do", data=data)
+        resp.encoding = "utf-8"
+        soup = BeautifulSoup(resp.text, "html.parser")
 
-    resp = session.post("https://job.alio.go.kr/recruit.do", data=data)
-    resp.encoding = "utf-8"
-    soup = BeautifulSoup(resp.text, "html.parser")
+        rows = soup.select("table tbody tr")
+        if not rows:
+            break
 
-    jobs = []
-    rows = soup.select("table tbody tr")
+        for row in rows:
+            cells = row.select("td")
+            if len(cells) < 7:
+                continue
 
-    for row in rows:
-        cells = row.select("td")
-        if len(cells) < 7:
-            continue
+            title_tag = cells[1].select_one("a")
+            title = title_tag.get_text(strip=True) if title_tag else cells[1].get_text(strip=True)
+            org = cells[2].get_text(strip=True)
+            location = cells[3].get_text(strip=True)
+            job_type = cells[4].get_text(strip=True)
+            deadline = cells[6].get_text(strip=True).split("\n")[0].strip()
 
-        title_tag = cells[1].select_one("a")
-        title = title_tag.get_text(strip=True) if title_tag else cells[1].get_text(strip=True)
-        org = cells[2].get_text(strip=True)
-        location = cells[3].get_text(strip=True)
-        job_type = cells[4].get_text(strip=True)
-        deadline = cells[6].get_text(strip=True).split("\n")[0].strip()
+            href = title_tag.get("href", "") if title_tag else ""
+            link = f"https://job.alio.go.kr{href}" if href.startswith("/") else href
 
-        href = title_tag.get("href", "") if title_tag else ""
-        link = f"https://job.alio.go.kr{href}" if href.startswith("/") else href
+            # 제주 제외
+            if "제주" in location:
+                continue
 
-        if "제주" in location:
-            continue
+            # 전산/IT 관련 키워드 필터
+            if not any(kw in title or kw in job_type for kw in KEYWORDS):
+                continue
 
-        jobs.append({
-            "title": title,
-            "org": org,
-            "location": location,
-            "job_type": job_type,
-            "deadline": deadline,
-            "link": link,
-        })
+            # 인턴/비정규직 제외
+            if any(ex in job_type for ex in EXCLUDE_TYPES):
+                continue
 
-    return jobs
+            all_jobs.append({
+                "title": title,
+                "org": org,
+                "location": location,
+                "job_type": job_type,
+                "deadline": deadline,
+                "link": link,
+            })
+
+    return all_jobs
 
 
 def build_html(jobs):
