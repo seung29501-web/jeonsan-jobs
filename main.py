@@ -1,10 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import os
 
-TISTORY_ACCESS_TOKEN = os.environ.get("TISTORY_ACCESS_TOKEN")
-TISTORY_BLOG_NAME = "mynote86786"
 
 def fetch_jobs():
     session = requests.Session()
@@ -27,7 +24,7 @@ def fetch_jobs():
     soup = BeautifulSoup(resp.text, "html.parser")
 
     jobs = []
-    rows = soup.select("table.list_type tbody tr")
+    rows = soup.select("table tbody tr")
 
     for row in rows:
         cells = row.select("td")
@@ -39,13 +36,10 @@ def fetch_jobs():
         org = cells[2].get_text(strip=True)
         location = cells[3].get_text(strip=True)
         job_type = cells[4].get_text(strip=True)
-        deadline = cells[6].get_text(strip=True).replace("\n", " ").strip()
+        deadline = cells[6].get_text(strip=True).split("\n")[0].strip()
 
         href = title_tag.get("href", "") if title_tag else ""
-        if href.startswith("/"):
-            link = f"https://job.alio.go.kr{href}"
-        else:
-            link = href
+        link = f"https://job.alio.go.kr{href}" if href.startswith("/") else href
 
         if "제주" in location:
             continue
@@ -62,55 +56,91 @@ def fetch_jobs():
     return jobs
 
 
-def build_post(jobs):
-    today = datetime.now().strftime("%Y년 %m월 %d일")
-    lines = []
-    lines.append(f"<h2>📋 {today} 기준 공공기관 전산직 채용공고</h2>")
-    lines.append("<p>비전공자도 지원 가능한 공공기관 전산직 정규직 채용공고를 정리했습니다.</p>")
-    lines.append("<hr/>")
+def build_html(jobs):
+    today = datetime.now().strftime("%Y년 %m월 %d일 %H:%M")
+    count = len(jobs)
 
+    rows_html = ""
     if not jobs:
-        lines.append("<p>현재 진행 중인 공고가 없습니다. 내일 다시 확인해주세요.</p>")
+        rows_html = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#888;">현재 진행 중인 공고가 없습니다.</td></tr>'
     else:
-        lines.append("<table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;width:100%'>")
-        lines.append("<thead><tr style='background:#f0f0f0'>")
-        lines.append("<th>기관명</th><th>채용제목</th><th>지역</th><th>고용형태</th><th>마감일</th><th>링크</th>")
-        lines.append("</tr></thead><tbody>")
-
         for job in jobs:
-            link_html = f"<a href='{job['link']}' target='_blank'>바로가기</a>" if job["link"] else "-"
-            lines.append(f"<tr>")
-            lines.append(f"<td>{job['org']}</td>")
-            lines.append(f"<td>{job['title']}</td>")
-            lines.append(f"<td>{job['location']}</td>")
-            lines.append(f"<td>{job['job_type']}</td>")
-            lines.append(f"<td>{job['deadline']}</td>")
-            lines.append(f"<td>{link_html}</td>")
-            lines.append("</tr>")
+            rows_html += f"""
+            <tr>
+                <td>{job['org']}</td>
+                <td><a href="{job['link']}" target="_blank">{job['title']}</a></td>
+                <td>{job['location']}</td>
+                <td>{job['job_type']}</td>
+                <td>{job['deadline']}</td>
+            </tr>"""
 
-        lines.append("</tbody></table>")
-
-    lines.append("<hr/>")
-    lines.append("<p><small>※ 본 포스팅은 알리오(job.alio.go.kr) 공공기관 채용정보를 자동 수집하여 작성됩니다.</small></p>")
-
-    return "\n".join(lines)
-
-
-def post_to_tistory(title, content):
-    url = "https://www.tistory.com/apis/post/write"
-    params = {
-        "access_token": TISTORY_ACCESS_TOKEN,
-        "output": "json",
-        "blogName": TISTORY_BLOG_NAME,
-        "title": title,
-        "content": content,
-        "visibility": "3",
-        "tag": "전산직,공공기관채용,비전공자,정규직채용",
-    }
-    resp = requests.post(url, data=params)
-    result = resp.json()
-    print("포스팅 결과:", result)
-    return result
+    return f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공공기관 전산직 채용공고</title>
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: 'Malgun Gothic', sans-serif; background: #f5f7fa; color: #333; }}
+  header {{ background: #1e3a5f; color: white; padding: 24px 32px; }}
+  header h1 {{ font-size: 22px; margin-bottom: 6px; }}
+  header p {{ font-size: 13px; opacity: 0.8; }}
+  .container {{ max-width: 1100px; margin: 24px auto; padding: 0 16px; }}
+  .stats {{ display: flex; gap: 12px; margin-bottom: 20px; }}
+  .stat-box {{ background: white; border-radius: 8px; padding: 16px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
+  .stat-box .num {{ font-size: 28px; font-weight: bold; color: #1e3a5f; }}
+  .stat-box .label {{ font-size: 12px; color: #888; margin-top: 2px; }}
+  .card {{ background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }}
+  table {{ width: 100%; border-collapse: collapse; }}
+  th {{ background: #1e3a5f; color: white; padding: 12px 16px; text-align: left; font-size: 13px; }}
+  td {{ padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }}
+  tr:last-child td {{ border-bottom: none; }}
+  tr:hover td {{ background: #f8f9ff; }}
+  a {{ color: #1e3a5f; text-decoration: none; font-weight: 500; }}
+  a:hover {{ text-decoration: underline; }}
+  .badge {{ display: inline-block; background: #e8f0fe; color: #1e3a5f; padding: 2px 8px; border-radius: 12px; font-size: 11px; }}
+  footer {{ text-align: center; padding: 24px; font-size: 12px; color: #aaa; }}
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 공공기관 전산직 채용공고 모아보기</h1>
+  <p>정규직 · 비전공자 지원 가능 공고 중심 · 제주 제외 · 매일 오전 7시 자동 업데이트</p>
+</header>
+<div class="container">
+  <div class="stats">
+    <div class="stat-box">
+      <div class="num">{count}</div>
+      <div class="label">진행중인 공고</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" style="font-size:14px;padding-top:6px;">{today}</div>
+      <div class="label">마지막 업데이트</div>
+    </div>
+  </div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>기관명</th>
+          <th>채용제목</th>
+          <th>지역</th>
+          <th>고용형태</th>
+          <th>마감일</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows_html}
+      </tbody>
+    </table>
+  </div>
+</div>
+<footer>
+  출처: 알리오(job.alio.go.kr) · GitHub Actions 자동 수집
+</footer>
+</body>
+</html>"""
 
 
 if __name__ == "__main__":
@@ -118,13 +148,7 @@ if __name__ == "__main__":
     jobs = fetch_jobs()
     print(f"수집된 공고: {len(jobs)}건")
 
-    today = datetime.now().strftime("%Y.%m.%d")
-    title = f"[{today}] 공공기관 전산직 정규직 채용공고 모음"
-    content = build_post(jobs)
-
-    if TISTORY_ACCESS_TOKEN:
-        post_to_tistory(title, content)
-    else:
-        print("TISTORY_ACCESS_TOKEN 없음 - 포스팅 건너뜀")
-        print("생성된 제목:", title)
-        print("공고 수:", len(jobs))
+    html = build_html(jobs)
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print("index.html 생성 완료")
