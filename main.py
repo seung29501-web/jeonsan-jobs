@@ -3,68 +3,79 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 
-KEYWORDS = ["전산", "IT", "정보", "소프트웨어", "데이터", "시스템", "개발", "보안", "네트워크", "디지털"]
+KEYWORDS = ["전산", "IT", "정보", "소프트웨어", "데이터", "시스템", "개발", "보안", "네트워크", "디지털", "컴퓨터", "통신"]
 EXCLUDE_TYPES = ["청년인턴", "체험형", "비정규직"]
 
 def fetch_jobs():
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9",
+        "Referer": "https://job.alio.go.kr/",
     })
 
     all_jobs = []
 
     for page in range(1, 6):
-        session.get("https://job.alio.go.kr/recruit.do")
-        data = {
-            "pageIndex": str(page),
-            "pageUnit": "50",
-            "srch_state": "ing",
-        }
-        resp = session.post("https://job.alio.go.kr/recruit.do", data=data)
-        resp.encoding = "utf-8"
-        soup = BeautifulSoup(resp.text, "html.parser")
+        try:
+            session.get("https://job.alio.go.kr/recruit.do", timeout=10)
+            data = {
+                "pageIndex": str(page),
+                "pageUnit": "50",
+                "srch_state": "ing",
+            }
+            resp = session.post("https://job.alio.go.kr/recruit.do", data=data, timeout=15)
+            resp.encoding = "utf-8"
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-        rows = soup.select("table tbody tr")
-        if not rows:
+            rows = soup.select("table tbody tr")
+            print(f"[페이지 {page}] 행 수: {len(rows)}")
+
+            if not rows:
+                print(f"[페이지 {page}] 데이터 없음, 중단")
+                break
+
+            for row in rows:
+                cells = row.select("td")
+                if len(cells) < 7:
+                    continue
+
+                title_tag = cells[1].select_one("a")
+                title = title_tag.get_text(strip=True) if title_tag else cells[1].get_text(strip=True)
+                org = cells[2].get_text(strip=True)
+                location = cells[3].get_text(strip=True)
+                job_type = cells[4].get_text(strip=True)
+                deadline = cells[6].get_text(strip=True).split("\n")[0].strip()
+
+                href = title_tag.get("href", "") if title_tag else ""
+                link = f"https://job.alio.go.kr{href}" if href.startswith("/") else href
+
+                print(f"  >> {title[:30]} | {job_type} | {location}")
+
+                if "제주" in location:
+                    continue
+
+                if not any(kw in title or kw in job_type for kw in KEYWORDS):
+                    continue
+
+                if any(ex in job_type for ex in EXCLUDE_TYPES):
+                    continue
+
+                all_jobs.append({
+                    "title": title,
+                    "org": org,
+                    "location": location,
+                    "job_type": job_type,
+                    "deadline": deadline,
+                    "link": link,
+                })
+
+        except Exception as e:
+            print(f"[페이지 {page}] 오류: {e}")
             break
 
-        for row in rows:
-            cells = row.select("td")
-            if len(cells) < 7:
-                continue
-
-            title_tag = cells[1].select_one("a")
-            title = title_tag.get_text(strip=True) if title_tag else cells[1].get_text(strip=True)
-            org = cells[2].get_text(strip=True)
-            location = cells[3].get_text(strip=True)
-            job_type = cells[4].get_text(strip=True)
-            deadline = cells[6].get_text(strip=True).split("\n")[0].strip()
-
-            href = title_tag.get("href", "") if title_tag else ""
-            link = f"https://job.alio.go.kr{href}" if href.startswith("/") else href
-
-            # 제주 제외
-            if "제주" in location:
-                continue
-
-            # 전산/IT 관련 키워드 필터
-            if not any(kw in title or kw in job_type for kw in KEYWORDS):
-                continue
-
-            # 인턴/비정규직 제외
-            if any(ex in job_type for ex in EXCLUDE_TYPES):
-                continue
-
-            all_jobs.append({
-                "title": title,
-                "org": org,
-                "location": location,
-                "job_type": job_type,
-                "deadline": deadline,
-                "link": link,
-            })
-
+    print(f"최종 필터링 결과: {len(all_jobs)}건")
     return all_jobs
 
 
