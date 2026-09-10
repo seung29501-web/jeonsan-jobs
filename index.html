@@ -6,40 +6,43 @@
 <title>공공기관 전산직 채용공고</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Malgun Gothic', sans-serif; background: #f5f7fa; color: #333; }
-  header { background: #1e3a5f; color: white; padding: 24px 32px; }
-  header h1 { font-size: 22px; margin-bottom: 6px; }
-  header p { font-size: 13px; opacity: 0.8; }
+  body { font-family: -apple-system, 'Malgun Gothic', sans-serif; background: #f5f7fa; color: #333; }
+  header { background: #1e3a5f; color: #fff; padding: 24px 32px; }
+  header h1 { font-size: 21px; margin-bottom: 6px; }
+  header p { font-size: 13px; opacity: .85; }
   .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-  .stats { display: flex; gap: 12px; margin-bottom: 20px; }
-  .stat-box { background: white; border-radius: 8px; padding: 16px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-  .stat-box .num { font-size: 28px; font-weight: bold; color: #1e3a5f; }
+  .stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-box { background: #fff; border-radius: 8px; padding: 16px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .stat-box .num { font-size: 28px; font-weight: 700; color: #1e3a5f; }
   .stat-box .label { font-size: 12px; color: #888; margin-top: 2px; }
-  .card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #1e3a5f; color: white; padding: 12px 16px; text-align: left; font-size: 13px; }
-  td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+  .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th { background: #1e3a5f; color: #fff; padding: 12px 16px; text-align: left; font-size: 13px; white-space: nowrap; }
+  td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #f8f9ff; }
+  .org { white-space: nowrap; color: #555; }
+  .deadline { white-space: nowrap; color: #d14; font-weight: 600; }
   a { color: #1e3a5f; text-decoration: none; font-weight: 500; }
   a:hover { text-decoration: underline; }
-  .badge { display: inline-block; background: #e8f0fe; color: #1e3a5f; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+  .tag { display: inline-block; background: #e8f0fe; color: #1e3a5f; padding: 2px 8px; border-radius: 12px; font-size: 11px; white-space: nowrap; }
+  .empty { text-align: center; padding: 40px; color: #888; }
   footer { text-align: center; padding: 24px; font-size: 12px; color: #aaa; }
 </style>
 </head>
 <body>
 <header>
-  <h1>📋 공공기관 전산직 채용공고 모아보기</h1>
-  <p>정규직 · 비전공자 지원 가능 공고 중심 · 제주 제외 · 매일 오전 7시 자동 업데이트</p>
+  <h1>공공기관 전산직 채용공고 모아보기</h1>
+  <p>알리오 NCS 직무 &ldquo;정보통신&rdquo; · 정규직 · 진행중 · 제주 제외 · 매일 오전 7시 자동 업데이트</p>
 </header>
 <div class="container">
   <div class="stats">
     <div class="stat-box">
-      <div class="num">0</div>
+      <div class="num">19</div>
       <div class="label">진행중인 공고</div>
     </div>
     <div class="stat-box">
-      <div class="num" style="font-size:14px;padding-top:6px;">2026년 09월 10일 08:44</div>
+      <div class="num" style="font-size:14px;padding-top:8px;">2026년 09월 10일 08:59</div>
       <div class="label">마지막 업데이트</div>
     </div>
   </div>
@@ -47,21 +50,147 @@
     <table>
       <thead>
         <tr>
-          <th>기관명</th>
-          <th>채용제목</th>
-          <th>지역</th>
-          <th>고용형태</th>
-          <th>마감일</th>
+          <th>기관명</th><th>채용제목</th><th>지역</th><th>고용형태</th><th>마감일</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td colspan="5" style="text-align:center;padding:40px;color:#888;">현재 진행 중인 공고가 없습니다.</td></tr>
+        <tr>
+          <td class="org">국가생명윤리정책원</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304793" target="_blank" rel="noopener">제2026-3차 직원 채용 공고</a></td>
+          <td>서울</td>
+          <td><span class="tag">비정규직 외 1</span></td>
+          <td class="deadline">26.09.23 D-12</td>
+        </tr>
+        <tr>
+          <td class="org">한국전기안전공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304763" target="_blank" rel="noopener">2026년 하반기 경력직원 채용</a></td>
+          <td>전북</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.22 D-11</td>
+        </tr>
+        <tr>
+          <td class="org">한국전력기술주식회사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304717" target="_blank" rel="noopener">2026년도 하반기 정규직(신입사원) 채용공고</a></td>
+          <td>경북</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.22 D-11</td>
+        </tr>
+        <tr>
+          <td class="org">한국수목원정원관리원</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304713" target="_blank" rel="noopener">한국수목원정원관리원 2026년 제3차 신규직원 채용 공고</a></td>
+          <td>강원 외 3</td>
+          <td><span class="tag">무기계약직 외 1</span></td>
+          <td class="deadline">26.09.21 D-10</td>
+        </tr>
+        <tr>
+          <td class="org">코레일유통(주)</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304686" target="_blank" rel="noopener">코레일유통(주) 2026년 일반직(IT개발) 경력사원 채용공고</a></td>
+          <td>서울</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.21 D-10</td>
+        </tr>
+        <tr>
+          <td class="org">한국고용정보원</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304653" target="_blank" rel="noopener">2026년도 한국고용정보원 2차 직원 채용 공고</a></td>
+          <td>인천 외 1</td>
+          <td><span class="tag">무기계약직 외 1</span></td>
+          <td class="deadline">26.09.22 D-11</td>
+        </tr>
+        <tr>
+          <td class="org">중소기업은행</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304557" target="_blank" rel="noopener">2026년 하반기 IBK기업은행 일반직원(정규직) 수시채용 공고</a></td>
+          <td>서울 외 16</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.21 D-10</td>
+        </tr>
+        <tr>
+          <td class="org">한국전력공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304551" target="_blank" rel="noopener">2026년도 하반기 4직급 대졸수준 신입사원 채용공고</a></td>
+          <td>서울 외 15</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.16 D-5</td>
+        </tr>
+        <tr>
+          <td class="org">한국학중앙연구원</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304545" target="_blank" rel="noopener">기능직(통신) 채용 공고</a></td>
+          <td>경기</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.17 D-6</td>
+        </tr>
+        <tr>
+          <td class="org">신용보증기금</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304432" target="_blank" rel="noopener">2026년도 하반기 신용보증기금 신입직원 채용</a></td>
+          <td>서울 외 15</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.16 D-5</td>
+        </tr>
+        <tr>
+          <td class="org">한국가스공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304489" target="_blank" rel="noopener">2026년 하반기 일반직(신입, 경력), 연구직 및 별정직 채용공고</a></td>
+          <td>서울 외 14</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.15 D-4</td>
+        </tr>
+        <tr>
+          <td class="org">한국장학재단</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304490" target="_blank" rel="noopener">한국장학재단 2026년 하반기 종합직 채용 공고(일반행정, IT 개발운영, 시설관리(경력))</a></td>
+          <td>대구</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.15 D-4</td>
+        </tr>
+        <tr>
+          <td class="org">인천국제공항공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304492" target="_blank" rel="noopener">2026년 신입직원(일반직, 안전보안직) 채용 공고</a></td>
+          <td>인천</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.15 D-4</td>
+        </tr>
+        <tr>
+          <td class="org">한국전력공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304429" target="_blank" rel="noopener">2026년도 1차 연구직 채용공고</a></td>
+          <td>대전 외 1</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.14 D-3</td>
+        </tr>
+        <tr>
+          <td class="org">한국지능정보사회진흥원</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304405" target="_blank" rel="noopener">2026년 한국지능정보사회진흥원 하반기 정규직 및 무기계약직(일반직) 채용공고</a></td>
+          <td>대구 외 1</td>
+          <td><span class="tag">무기계약직 외 1</span></td>
+          <td class="deadline">26.09.14 D-3</td>
+        </tr>
+        <tr>
+          <td class="org">예금보험공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304400" target="_blank" rel="noopener">2026년도 예금보험공사 신입직원 채용안내</a></td>
+          <td>서울</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.11 D+0</td>
+        </tr>
+        <tr>
+          <td class="org">한국수자원공사</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304367" target="_blank" rel="noopener">[한국수자원공사] 2026년 전문직, 시설운영직(경력) 제한경쟁 채용공고</a></td>
+          <td>경기</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.11 D+0</td>
+        </tr>
+        <tr>
+          <td class="org">한국항공우주연구원</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304298" target="_blank" rel="noopener">(수정) 한국항공우주연구원 2026년도 하반기 정규직 채용공고</a></td>
+          <td>대전</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.10 D-Day</td>
+        </tr>
+        <tr>
+          <td class="org">중소벤처기업진흥공단</td>
+          <td><a href="https://job.alio.go.kr/recruitview.do?idx=304230" target="_blank" rel="noopener">2026년 하반기 중소벤처기업진흥공단 일반직(신입·경력) 채용 공고</a></td>
+          <td>서울 외 16</td>
+          <td><span class="tag">정규직</span></td>
+          <td class="deadline">26.09.10 D-Day</td>
+        </tr>
       </tbody>
     </table>
   </div>
 </div>
-<footer>
-  출처: 알리오(job.alio.go.kr) · GitHub Actions 자동 수집
-</footer>
+<footer>출처: 알리오(job.alio.go.kr) · GitHub Actions 자동 수집</footer>
 </body>
 </html>
