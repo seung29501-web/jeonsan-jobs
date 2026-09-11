@@ -4,6 +4,10 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 
+# 알리오가 막혀 재시도가 길어져도 실행 전체가 이 시간을 넘기지 않게 한다.
+START = time.monotonic()
+BUDGET = 420
+
 BASE = "https://job.alio.go.kr"
 LIST_URL = f"{BASE}/recruit.do"
 
@@ -74,9 +78,14 @@ def clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def request(session, url, data=None, tries=6):
-    """알리오는 클라우드 IP를 간헐적으로 막아서, 실패하면 간격을 늘려가며 길게 재시도한다."""
+def request(session, url, data=None, tries=4):
+    """알리오는 클라우드 IP를 간헐적으로 막아서, 실패하면 간격을 늘려가며 재시도한다.
+
+    재시도가 요청마다 쌓이면 실행이 끝없이 길어지므로 전체 예산(BUDGET) 안에서만 기다린다.
+    """
     for attempt in range(1, tries + 1):
+        if time.monotonic() - START > BUDGET:
+            raise requests.ConnectionError("전체 시간 예산 초과")
         try:
             if data is None:
                 resp = session.get(url, timeout=30)
@@ -88,7 +97,7 @@ def request(session, url, data=None, tries=6):
         except requests.RequestException as e:
             if attempt == tries:
                 raise
-            wait = 20 * attempt
+            wait = 15 * attempt
             print(f"  요청 실패 {attempt}/{tries} ({type(e).__name__}) — {wait}초 후 재시도")
             time.sleep(wait)
 
@@ -224,7 +233,7 @@ def enrich(session, jobs):
     kept, dropped = [], []
     for job in jobs:
         try:
-            resp = request(session, job["link"])
+            resp = request(session, job["link"], tries=2)
             fields, sections, positions = parse_detail(resp.text)
             eng, major, it, it_fields = judge(fields, sections, positions, job["title"])
             job.update(eng=eng, major=major, it=it, it_fields=it_fields,
