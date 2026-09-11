@@ -56,6 +56,25 @@ def clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def request(session, url, data=None, tries=4):
+    """알리오는 점검·과부하로 종종 응답이 끊겨서 실패하면 간격을 늘려가며 재시도한다."""
+    for attempt in range(1, tries + 1):
+        try:
+            if data is None:
+                resp = session.get(url, timeout=30)
+            else:
+                resp = session.post(url, data=data, timeout=30)
+            resp.raise_for_status()
+            resp.encoding = "utf-8"
+            return resp
+        except requests.RequestException as e:
+            if attempt == tries:
+                raise
+            wait = 10 * attempt
+            print(f"  요청 실패 {attempt}/{tries} ({type(e).__name__}) — {wait}초 후 재시도")
+            time.sleep(wait)
+
+
 def parse_detail(html):
     """상세페이지에서 메타 필드, h4 섹션 본문, 모집분야 목록을 분리한다."""
     soup = BeautifulSoup(html, "html.parser")
@@ -128,7 +147,7 @@ def judge(fields, sections, positions, title):
 
 
 def fetch_list(session, max_pages=10):
-    session.get(LIST_URL, timeout=20)
+    request(session, LIST_URL)
     items, seen = [], set()
 
     for page in range(1, max_pages + 1):
@@ -141,8 +160,11 @@ def fetch_list(session, max_pages=10):
             ("career", CAREER_BOTH),
             ("ing", STATUS_ONGOING),
         ]
-        resp = session.post(LIST_URL, data=payload, timeout=20)
-        resp.encoding = "utf-8"
+        try:
+            resp = request(session, LIST_URL, data=payload)
+        except requests.RequestException as e:
+            print(f"[목록 {page}p] 포기 ({type(e).__name__}) — 여기까지 수집한 걸로 진행")
+            break
         rows = BeautifulSoup(resp.text, "html.parser").select("table.type_03 tbody tr")
         print(f"[목록 {page}p] 수신 {len(rows)}건")
         if not rows:
@@ -184,8 +206,7 @@ def enrich(session, jobs):
     kept, dropped = [], []
     for job in jobs:
         try:
-            resp = session.get(job["link"], timeout=20)
-            resp.encoding = "utf-8"
+            resp = request(session, job["link"])
             fields, sections, positions = parse_detail(resp.text)
             eng, major, it, it_fields = judge(fields, sections, positions, job["title"])
             job.update(eng=eng, major=major, it=it, it_fields=it_fields,
@@ -339,6 +360,11 @@ def build_html(jobs):
 if __name__ == "__main__":
     print("공고 수집 중...")
     jobs = fetch_jobs()
+
+    # 한 건도 못 가져왔으면 알리오가 죽은 것이므로, 빈 페이지로 덮어쓰지 않고 기존 사이트를 유지한다.
+    if not jobs:
+        raise SystemExit("수집 결과 0건 — 배포를 건너뛰고 기존 사이트를 유지한다")
+
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(build_html(jobs))
     print(f"index.html 생성 완료 ({len(jobs)}건)")
