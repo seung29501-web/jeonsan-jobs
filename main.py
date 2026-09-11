@@ -2,11 +2,12 @@ import re
 import time
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 # 알리오가 막혀 재시도가 길어져도 실행 전체가 이 시간을 넘기지 않게 한다.
 START = time.monotonic()
 BUDGET = 900
+KST = timezone(timedelta(hours=9))
 
 BASE = "https://job.alio.go.kr"
 LIST_URL = f"{BASE}/recruit.do"
@@ -435,36 +436,70 @@ def fetch_jobs():
     return jobs, sources
 
 
+def deadline_info(text):
+    """공고마다 마감일 표기가 달라서(26.09.22 / 2026-09-22) 날짜로 통일하고 D-day를 계산한다."""
+    m = re.search(r"(\d{2,4})[.\-/](\d{1,2})[.\-/](\d{1,2})", text or "")
+    if not m:
+        return text or "-", None
+    year, month, day = (int(x) for x in m.groups())
+    if year < 100:
+        year += 2000
+    try:
+        due = date(year, month, day)
+    except ValueError:
+        return text or "-", None
+    return due.strftime("%Y.%m.%d"), (due - datetime.now(KST).date()).days
+
+
 def build_html(jobs, sources):
-    today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일 %H:%M")
+    now = datetime.now(KST)
     eng_cls = {"없음": "ok", "평가반영": "warn", "확인필요": "warn", "필수": "bad"}
     maj_cls = {"무관": "ok", "언급없음": "ok", "제한있음": "bad"}
+    src_cls = {"알리오": "alio", "지방공기업": "local", "나라일터": "gov"}
     safe = sum(1 for j in jobs if j["eng"] == "없음" and j["major"] != "제한있음")
+    closing = sum(1 for j in jobs if (deadline_info(j["deadline"])[1] or 99) <= 7)
 
     source_html = "".join(
-        f'<span class="row">{name}({desc}) '
-        f'<b class="{"zero" if count == 0 else ""}">{count}건</b>'
-        + (f' <span class="why">— {note}</span>' if note else "")
+        f'<span class="chip {src_cls.get(name, "")}">'
+        f'<i></i>{name} <b>{count}</b>'
+        + (f'<em>{note}</em>' if note else "")
         + "</span>"
         for name, desc, count, note in sources
     )
 
-    if jobs:
-        rows_html = "".join(
-            f"""
-        <tr data-eng="{j['eng']}" data-major="{j['major']}">
-          <td class="org">{j['org']}<div class="src { {'지방공기업': 'ce', '나라일터': 'gj'}.get(j['source'], '') }">{j['source']}</div></td>
-          <td><a href="{j['link']}" target="_blank" rel="noopener">{j['title']}</a>
-              <div class="sub">{' · '.join(j['it_fields']) if j['it_fields'] else '전산 분야 확인 필요 (첨부 공고문 참조)'}</div></td>
-          <td>{j['location']}</td>
-          <td><span class="pill {eng_cls[j['eng']]}">{j['eng']}</span></td>
-          <td><span class="pill {maj_cls[j['major']]}">{j['major']}</span></td>
-          <td class="dl">{j['job_type']}<br><b>{j['deadline']}</b><br><span class="edu">{j['edu']}</span></td>
-        </tr>"""
-            for j in jobs
-        )
-    else:
-        rows_html = '<tr><td colspan="6" class="empty">조건에 맞는 진행중인 공고가 없습니다.</td></tr>'
+    rows = []
+    for job in jobs:
+        due_text, days = deadline_info(job["deadline"])
+        if days is None:
+            dday, dcls = "", ""
+        elif days < 0:
+            dday, dcls = "마감", "gone"
+        elif days == 0:
+            dday, dcls = "오늘 마감", "urgent"
+        else:
+            dday, dcls = f"D-{days}", "urgent" if days <= 3 else ("soon" if days <= 7 else "")
+        fields = " · ".join(job["it_fields"]) if job["it_fields"] else "전산 분야 확인 필요"
+        rows.append(f"""
+        <tr data-eng="{job['eng']}" data-major="{job['major']}">
+          <td data-label="기관">
+            <div class="org">{job['org']}</div>
+            <span class="src {src_cls.get(job['source'], '')}">{job['source']}</span>
+          </td>
+          <td data-label="공고">
+            <a href="{job['link']}" target="_blank" rel="noopener">{job['title']}</a>
+            <div class="fields">{fields}</div>
+          </td>
+          <td data-label="지역">{job['location']}</td>
+          <td data-label="어학"><span class="pill {eng_cls[job['eng']]}">{job['eng']}</span></td>
+          <td data-label="전공"><span class="pill {maj_cls[job['major']]}">{job['major']}</span></td>
+          <td data-label="마감">
+            <div class="due">{due_text}</div>
+            <span class="dday {dcls}">{dday}</span>
+            <div class="meta">{job['job_type']} · {job['edu']}</div>
+          </td>
+        </tr>""")
+
+    rows_html = "".join(rows) or '<tr><td colspan="6" class="empty">조건에 맞는 진행중인 공고가 없습니다.</td></tr>'
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -473,102 +508,150 @@ def build_html(jobs, sources):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>공공기관 전산직 채용공고</title>
 <style>
+  :root {{
+    --bg: #f4f6fb; --surface: #fff; --border: #e6e9f0; --text: #1c2333; --muted: #6b7382;
+    --brand: #4f46e5; --brand2: #7c3aed; --shadow: 0 1px 3px rgba(20,25,45,.07), 0 8px 24px rgba(20,25,45,.05);
+    --ok-bg: #dcfce7; --ok-fg: #15803d; --warn-bg: #fef3c7; --warn-fg: #a16207;
+    --bad-bg: #ffe4e6; --bad-fg: #be123c;
+  }}
+  @media (prefers-color-scheme: dark) {{
+    :root {{
+      --bg: #0e1016; --surface: #171b24; --border: #262c38; --text: #e8eaf0; --muted: #98a0b0;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+      --ok-bg: #052e1a; --ok-fg: #4ade80; --warn-bg: #38260a; --warn-fg: #fbbf24;
+      --bad-bg: #3d0d1b; --bad-fg: #fb7185;
+    }}
+  }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, 'Malgun Gothic', sans-serif; background: #f5f7fa; color: #333; }}
-  header {{ background: #1e3a5f; color: #fff; padding: 24px 32px; }}
-  header h1 {{ font-size: 21px; margin-bottom: 6px; }}
-  header p {{ font-size: 13px; opacity: .85; line-height: 1.6; }}
-  .container {{ max-width: 1240px; margin: 24px auto; padding: 0 16px; }}
-  .stats {{ display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }}
-  .stat-box {{ background: #fff; border-radius: 8px; padding: 16px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }}
-  .stat-box .num {{ font-size: 28px; font-weight: 700; color: #1e3a5f; }}
-  .stat-box .num.hl {{ color: #1a7f37; }}
-  .stat-box .label {{ font-size: 12px; color: #888; margin-top: 2px; }}
-  .srcbar {{ background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.08); font-size: 13px; }}
-  .srcbar b {{ margin-right: 14px; color: #1e3a5f; }}
-  .srcbar .row {{ display: inline-block; margin-right: 18px; }}
-  .srcbar .zero {{ color: #9a6400; }}
-  .srcbar .why {{ color: #999; font-size: 12px; }}
-  .toolbar {{ background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
-             box-shadow: 0 1px 4px rgba(0,0,0,.08); font-size: 13px; display: flex; gap: 20px; flex-wrap: wrap; }}
-  .toolbar label {{ cursor: pointer; user-select: none; }}
-  .card {{ background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow-x: auto; }}
-  table {{ width: 100%; border-collapse: collapse; min-width: 940px; }}
-  th {{ background: #1e3a5f; color: #fff; padding: 12px 14px; text-align: left; font-size: 13px; white-space: nowrap; }}
-  td {{ padding: 12px 14px; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }}
-  tr:last-child td {{ border-bottom: none; }}
-  tbody tr:hover td {{ background: #f8f9ff; }}
-  .org {{ white-space: nowrap; color: #555; }}
-  .sub {{ font-size: 11px; color: #1a7f37; margin-top: 5px; font-weight: 600; }}
-  .src {{ display: inline-block; margin-top: 5px; padding: 1px 7px; border-radius: 10px;
-         font-size: 10px; font-weight: 700; background: #eef1f6; color: #45607f; }}
-  .src.ce {{ background: #f3ecfb; color: #6b3fa0; }}
-  .src.gj {{ background: #e7f3ee; color: #1d6b4f; }}
-  .dl {{ white-space: nowrap; font-size: 11px; color: #777; line-height: 1.7; }}
-  .dl b {{ color: #d14; font-size: 13px; }}
-  .edu {{ color: #aaa; }}
-  a {{ color: #1e3a5f; text-decoration: none; font-weight: 500; }}
-  a:hover {{ text-decoration: underline; }}
-  .pill {{ display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px; white-space: nowrap; font-weight: 600; }}
-  .pill.ok {{ background: #e6f4ea; color: #1a7f37; }}
-  .pill.warn {{ background: #fff4e5; color: #9a6400; }}
-  .pill.bad {{ background: #fde8e8; color: #b42318; }}
-  .empty {{ text-align: center; padding: 40px; color: #888; }}
-  .note {{ font-size: 12px; color: #999; margin-top: 12px; line-height: 1.7; }}
-  footer {{ text-align: center; padding: 24px; font-size: 12px; color: #aaa; }}
+  body {{ background: var(--bg); color: var(--text); line-height: 1.5;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif; }}
+  header {{ background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; padding: 34px 24px 30px; }}
+  .head-in {{ max-width: 1180px; margin: 0 auto; }}
+  header h1 {{ font-size: 25px; font-weight: 800; letter-spacing: -.4px; }}
+  header p {{ margin-top: 8px; font-size: 13.5px; opacity: .9; max-width: 760px; }}
+  .wrap {{ max-width: 1180px; margin: -18px auto 40px; padding: 0 16px; }}
+  .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; }}
+  .stat {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+          padding: 16px 18px; box-shadow: var(--shadow); }}
+  .stat .n {{ font-size: 30px; font-weight: 800; letter-spacing: -1px; }}
+  .stat .n.good {{ color: #16a34a; }}
+  .stat .n.hot {{ color: #e11d48; }}
+  .stat .n.sm {{ font-size: 16px; padding-top: 9px; }}
+  .stat .l {{ font-size: 12px; color: var(--muted); margin-top: 3px; }}
+  .panel {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+           box-shadow: var(--shadow); margin-top: 14px; }}
+  .panel-h {{ padding: 13px 18px; font-size: 12px; font-weight: 700; color: var(--muted);
+             letter-spacing: .4px; border-bottom: 1px solid var(--border); }}
+  .chips {{ padding: 13px 18px; display: flex; flex-wrap: wrap; gap: 9px; }}
+  .chip {{ display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px;
+          background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 6px 13px; }}
+  .chip i {{ width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }}
+  .chip.alio i {{ background: #4f46e5; }} .chip.local i {{ background: #a855f7; }} .chip.gov i {{ background: #10b981; }}
+  .chip b {{ font-weight: 700; }}
+  .chip em {{ font-style: normal; color: var(--muted); font-size: 11.5px; }}
+  .tools {{ padding: 13px 18px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; }}
+  .tools label {{ display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }}
+  .tablewrap {{ overflow-x: auto; }}
+  table {{ width: 100%; border-collapse: collapse; min-width: 900px; }}
+  th {{ position: sticky; top: 0; background: var(--surface); text-align: left; font-size: 11.5px;
+       color: var(--muted); font-weight: 700; letter-spacing: .3px; padding: 12px 16px;
+       border-bottom: 1px solid var(--border); }}
+  td {{ padding: 15px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; vertical-align: top; }}
+  tbody tr:last-child td {{ border-bottom: none; }}
+  tbody tr:hover td {{ background: color-mix(in srgb, var(--brand) 4%, transparent); }}
+  .org {{ font-weight: 600; white-space: nowrap; }}
+  .src {{ display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px;
+         font-size: 10.5px; font-weight: 700; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }}
+  .src.alio {{ color: #4f46e5; }} .src.local {{ color: #9333ea; }} .src.gov {{ color: #059669; }}
+  td a {{ color: var(--text); text-decoration: none; font-weight: 600; }}
+  td a:hover {{ color: var(--brand); text-decoration: underline; }}
+  .fields {{ margin-top: 6px; font-size: 11.5px; font-weight: 600; color: #16a34a; }}
+  .pill {{ display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px;
+          font-weight: 700; white-space: nowrap; }}
+  .pill.ok {{ background: var(--ok-bg); color: var(--ok-fg); }}
+  .pill.warn {{ background: var(--warn-bg); color: var(--warn-fg); }}
+  .pill.bad {{ background: var(--bad-bg); color: var(--bad-fg); }}
+  .due {{ font-weight: 600; white-space: nowrap; }}
+  .dday {{ display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 6px;
+          font-size: 11.5px; font-weight: 800; background: var(--bg); color: var(--muted); }}
+  .dday.soon {{ background: var(--warn-bg); color: var(--warn-fg); }}
+  .dday.urgent {{ background: var(--bad-bg); color: var(--bad-fg); }}
+  .dday.gone {{ opacity: .5; }}
+  .meta {{ margin-top: 5px; font-size: 11px; color: var(--muted); white-space: nowrap; }}
+  .empty {{ text-align: center; padding: 48px; color: var(--muted); }}
+  .note {{ margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.85; }}
+  .note b {{ color: var(--text); }}
+  footer {{ text-align: center; padding: 26px; font-size: 12px; color: var(--muted); }}
+  @media (max-width: 760px) {{
+    header {{ padding: 26px 18px 26px; }}
+    header h1 {{ font-size: 20px; }}
+    table {{ min-width: 0; }}
+    thead {{ display: none; }}
+    tbody tr {{ display: block; padding: 14px 16px; border-bottom: 1px solid var(--border); }}
+    tbody td {{ display: flex; gap: 10px; border: none; padding: 4px 0; font-size: 13px; }}
+    tbody td::before {{ content: attr(data-label); flex: 0 0 52px; color: var(--muted); font-size: 11.5px; padding-top: 2px; }}
+    .org, .meta, .due {{ white-space: normal; }}
+  }}
 </style>
 </head>
 <body>
 <header>
-  <h1>공공기관 전산직 채용공고 모아보기</h1>
-  <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외<br>
-     <b>알리오</b>(중앙 공공기관) + <b>클린아이</b>(지방공기업) · 공고 본문의 모집분야와 응시자격까지 읽어서 걸러냄 · 하루 4번 자동 갱신</p>
+  <div class="head-in">
+    <h1>공공기관 전산직 채용공고</h1>
+    <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외 — 알리오 필터만 믿지 않고
+       공고 본문의 <b>모집분야와 응시자격까지 읽어서</b> 걸러냈어. 하루 4번 자동 갱신.</p>
+  </div>
 </header>
-<div class="container">
+<div class="wrap">
   <div class="stats">
-    <div class="stat-box"><div class="num hl">{safe}</div><div class="label">토익·전공 조건 없는 공고</div></div>
-    <div class="stat-box"><div class="num">{len(jobs)}</div><div class="label">전산 분야 있는 공고</div></div>
-    <div class="stat-box"><div class="num" style="font-size:14px;padding-top:8px;">{today}</div><div class="label">마지막 업데이트</div></div>
+    <div class="stat"><div class="n good">{safe}</div><div class="l">토익·전공 조건 없음</div></div>
+    <div class="stat"><div class="n hot">{closing}</div><div class="l">일주일 내 마감</div></div>
+    <div class="stat"><div class="n">{len(jobs)}</div><div class="l">전체 공고</div></div>
+    <div class="stat"><div class="n sm">{now.strftime("%m월 %d일 %H:%M")}</div><div class="l">마지막 업데이트</div></div>
   </div>
-  <div class="srcbar">
-    <b>수집 현황</b>
-    {source_html}
+
+  <div class="panel">
+    <div class="panel-h">수집 현황</div>
+    <div class="chips">{source_html}</div>
   </div>
-  <div class="toolbar">
-    <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b>인 공고 숨기기</label>
-    <label><input type="checkbox" id="hideMajor" checked> 전공 <b>제한있음</b>인 공고 숨기기</label>
+
+  <div class="panel">
+    <div class="tools">
+      <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b> 숨기기</label>
+      <label><input type="checkbox" id="hideMajor" checked> 전공 <b>제한있음</b> 숨기기</label>
+      <span id="count" style="color:var(--muted)"></span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>기관</th><th>공고 / 전산 모집분야</th><th>지역</th><th>어학</th><th>전공</th><th>마감</th>
+        </tr></thead>
+        <tbody id="tbody">{rows_html}</tbody>
+      </table>
+    </div>
   </div>
-  <div class="card">
-    <table>
-      <thead>
-        <tr><th>기관명</th><th>채용제목 / 전산 모집분야</th><th>지역</th><th>어학요건</th><th>전공요건</th><th>형태 / 마감 / 학력</th></tr>
-      </thead>
-      <tbody id="tbody">{rows_html}
-      </tbody>
-    </table>
-  </div>
+
   <p class="note">
-    제목 아래 <b style="color:#1a7f37">초록색 글씨</b>가 그 공고에서 실제로 뽑는 전산 계열 모집분야야.
-    전산 분야가 하나도 없는 공고는 아예 목록에서 뺐어.<br>
-    <b>어학요건 / 전공요건</b>은 <b>응시자격</b> 항목만 읽어서 판정했어 (전형절차의 &ldquo;전공시험&rdquo; 같은 건 요건이 아니라 제외).
-    <b>평가반영</b>은 지원자격은 아니지만 서류 점수에 반영되는 경우, <b>확인필요</b>는 애매한 경우야.<br>
-    통합채용은 분야마다 조건이 달라서 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.<br>
-    <b style="color:#6b3fa0">지방공기업</b> 배지가 붙은 건 클린아이에서 가져온 거야. 이쪽은 자격요건을 첨부 공고문에만 적는 곳이 많아서
-    어학·전공을 자동 판정하지 않고 <b>확인필요</b>로 두었어.
+    제목 아래 <b style="color:#16a34a">초록색 글씨</b>가 그 공고에서 실제로 뽑는 전산 계열 모집분야야. 전산 분야가 없는 공고는 목록에서 뺐어.<br>
+    <b>어학 / 전공</b>은 공고의 <b>응시자격</b> 항목만 읽어 판정했어. <b>평가반영</b>은 지원자격은 아니지만 서류 점수에 반영되는 경우,
+    <b>확인필요</b>는 자격요건이 첨부 공고문에만 있어 직접 봐야 하는 경우야 (지방공기업·나라일터가 대부분 여기 해당).<br>
+    통합채용은 분야마다 조건이 달라 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.
   </p>
 </div>
 <footer>출처: 알리오 · 클린아이 잡플러스 · 나라일터 · GitHub Actions 자동 수집</footer>
 <script>
+  var he = document.getElementById('hideEng'), hm = document.getElementById('hideMajor');
   function apply() {{
-    var he = document.getElementById('hideEng').checked;
-    var hm = document.getElementById('hideMajor').checked;
+    var shown = 0;
     document.querySelectorAll('#tbody tr[data-eng]').forEach(function (tr) {{
-      tr.hidden = (he && tr.dataset.eng === '필수') || (hm && tr.dataset.major === '제한있음');
+      var hide = (he.checked && tr.dataset.eng === '필수') || (hm.checked && tr.dataset.major === '제한있음');
+      tr.hidden = hide;
+      if (!hide) shown++;
     }});
+    document.getElementById('count').textContent = shown + '건 표시 중';
   }}
-  document.getElementById('hideEng').addEventListener('change', apply);
-  document.getElementById('hideMajor').addEventListener('change', apply);
+  he.addEventListener('change', apply);
+  hm.addEventListener('change', apply);
   apply();
 </script>
 </body>
