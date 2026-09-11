@@ -16,6 +16,12 @@
   .stat-box .num { font-size: 28px; font-weight: 700; color: #1e3a5f; }
   .stat-box .num.hl { color: #1a7f37; }
   .stat-box .label { font-size: 12px; color: #888; margin-top: 2px; }
+  .srcbar { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08); font-size: 13px; }
+  .srcbar b { margin-right: 14px; color: #1e3a5f; }
+  .srcbar .row { display: inline-block; margin-right: 18px; }
+  .srcbar .zero { color: #9a6400; }
+  .srcbar .why { color: #999; font-size: 12px; }
   .toolbar { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
              box-shadow: 0 1px 4px rgba(0,0,0,.08); font-size: 13px; display: flex; gap: 20px; flex-wrap: wrap; }
   .toolbar label { cursor: pointer; user-select: none; }
@@ -30,6 +36,7 @@
   .src { display: inline-block; margin-top: 5px; padding: 1px 7px; border-radius: 10px;
          font-size: 10px; font-weight: 700; background: #eef1f6; color: #45607f; }
   .src.ce { background: #f3ecfb; color: #6b3fa0; }
+  .src.gj { background: #e7f3ee; color: #1d6b4f; }
   .dl { white-space: nowrap; font-size: 11px; color: #777; line-height: 1.7; }
   .dl b { color: #d14; font-size: 13px; }
   .edu { color: #aaa; }
@@ -53,8 +60,12 @@
 <div class="container">
   <div class="stats">
     <div class="stat-box"><div class="num hl">13</div><div class="label">토익·전공 조건 없는 공고</div></div>
-    <div class="stat-box"><div class="num">19</div><div class="label">전산 분야 있는 공고</div></div>
-    <div class="stat-box"><div class="num" style="font-size:14px;padding-top:8px;">2026년 09월 11일 16:37</div><div class="label">마지막 업데이트</div></div>
+    <div class="stat-box"><div class="num">21</div><div class="label">전산 분야 있는 공고</div></div>
+    <div class="stat-box"><div class="num" style="font-size:14px;padding-top:8px;">2026년 09월 11일 17:21</div><div class="label">마지막 업데이트</div></div>
+  </div>
+  <div class="srcbar">
+    <b>수집 현황</b>
+    <span class="row">알리오(중앙 공공기관) <b class="">19건</b></span><span class="row">지방공기업(클린아이) <b class="zero">0건</b> <span class="why">— 가장 최근 공고는 2026-08-10 마감 (인천스마트시티(주))</span></span><span class="row">나라일터(공무원) <b class="">2건</b></span>
   </div>
   <div class="toolbar">
     <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b>인 공고 숨기기</label>
@@ -183,6 +194,24 @@
           <td><span class="pill ok">언급없음</span></td>
           <td class="dl">정규직<br><b>26.09.28 D-16</b><br><span class="edu">학력무관,고졸</span></td>
         </tr>
+        <tr data-eng="확인필요" data-major="언급없음">
+          <td class="org">경북대학교 정보화본부<div class="src gj">나라일터</div></td>
+          <td><a href="https://www.gojobs.go.kr/apmView_recruit.do?menuNo=401&flag=U&searchJobsecode=020&empmnsn=302818" target="_blank" rel="noopener">2026년도 제3회 경북대학교 정보화본부 대학회계 무기계약직원(전산직) 공개 채용 공고</a>
+              <div class="sub">공고 제목 기준</div></td>
+          <td>-</td>
+          <td><span class="pill warn">확인필요</span></td>
+          <td><span class="pill ok">언급없음</span></td>
+          <td class="dl">공무원<br><b>2026-09-16</b><br><span class="edu">-</span></td>
+        </tr>
+        <tr data-eng="확인필요" data-major="언급없음">
+          <td class="org">국회 국회사무처<div class="src gj">나라일터</div></td>
+          <td><a href="https://www.gojobs.go.kr/apmView_recruit.do?menuNo=401&flag=U&searchJobsecode=020&empmnsn=303399" target="_blank" rel="noopener">2026년도 국회사무처 정보기술직 9급(정보기술서기보) 경력경쟁채용시험 공고(구. 전산직9급)</a>
+              <div class="sub">공고 제목 기준</div></td>
+          <td>-</td>
+          <td><span class="pill warn">확인필요</span></td>
+          <td><span class="pill ok">언급없음</span></td>
+          <td class="dl">공무원<br><b>2026-09-22</b><br><span class="edu">-</span></td>
+        </tr>
         <tr data-eng="필수" data-major="언급없음">
           <td class="org">한국해양진흥공사<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304450" target="_blank" rel="noopener">한국해양진흥공사 하반기 정규직(신입사원) 채용</a>
@@ -250,7 +279,7 @@
     어학·전공을 자동 판정하지 않고 <b>확인필요</b>로 두었어.
   </p>
 </div>
-<footer>출처: 알리오(job.alio.go.kr) · 클린아이 잡플러스(job.cleaneye.go.kr) · GitHub Actions 자동 수집</footer>
+<footer>출처: 알리오 · 클린아이 잡플러스 · 나라일터 · GitHub Actions 자동 수집</footer>
 <script>
   function apply() {
     var he = document.getElementById('hideEng').checked;
