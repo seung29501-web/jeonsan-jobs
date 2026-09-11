@@ -2,7 +2,7 @@ import re
 import time
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 BASE = "https://job.alio.go.kr"
 LIST_URL = f"{BASE}/recruit.do"
@@ -74,8 +74,8 @@ def clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def request(session, url, data=None, tries=4):
-    """알리오는 점검·과부하로 종종 응답이 끊겨서 실패하면 간격을 늘려가며 재시도한다."""
+def request(session, url, data=None, tries=6):
+    """알리오는 클라우드 IP를 간헐적으로 막아서, 실패하면 간격을 늘려가며 길게 재시도한다."""
     for attempt in range(1, tries + 1):
         try:
             if data is None:
@@ -88,7 +88,7 @@ def request(session, url, data=None, tries=4):
         except requests.RequestException as e:
             if attempt == tries:
                 raise
-            wait = 10 * attempt
+            wait = 20 * attempt
             print(f"  요청 실패 {attempt}/{tries} ({type(e).__name__}) — {wait}초 후 재시도")
             time.sleep(wait)
 
@@ -241,7 +241,7 @@ def enrich(session, jobs):
         kept.append(job)
         tag = ", ".join(job["it_fields"])[:40] or "확인필요"
         print(f"  {job['org'][:16]:<17} 어학={job['eng']:<5} 전공={job['major']:<5} 분야={tag}")
-        time.sleep(0.3)
+        time.sleep(0.8)
 
     print(f"전산 분야 없어서 제외: {len(dropped)}건")
     return kept
@@ -289,15 +289,23 @@ def fetch_cleaneye():
     return jobs
 
 
-def fetch_jobs():
+def fetch_alio():
     session = requests.Session()
     session.headers.update(HEADERS)
-    jobs = fetch_list(session)
+    try:
+        jobs = fetch_list(session)
+    except Exception as e:
+        print(f"[알리오] 접속 실패 ({type(e).__name__}) — 지방공기업만으로 진행")
+        return []
     print(f"목록 필터링 후: {len(jobs)}건 — 상세 확인 중")
     jobs = enrich(session, jobs)
     for job in jobs:
         job.setdefault("source", "알리오")
+    return jobs
 
+
+def fetch_jobs():
+    jobs = fetch_alio()
     jobs += fetch_cleaneye()
 
     penalty = {"없음": 0, "언급없음": 0, "무관": 0, "있음": 0,
@@ -307,7 +315,7 @@ def fetch_jobs():
 
 
 def build_html(jobs):
-    today = datetime.now().strftime("%Y년 %m월 %d일 %H:%M")
+    today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일 %H:%M")
     eng_cls = {"없음": "ok", "평가반영": "warn", "확인필요": "warn", "필수": "bad"}
     maj_cls = {"무관": "ok", "언급없음": "ok", "제한있음": "bad"}
     safe = sum(1 for j in jobs if j["eng"] == "없음" and j["major"] != "제한있음")
@@ -379,7 +387,7 @@ def build_html(jobs):
 <header>
   <h1>공공기관 전산직 채용공고 모아보기</h1>
   <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외<br>
-     <b>알리오</b>(중앙 공공기관) + <b>클린아이</b>(지방공기업) · 공고 본문의 모집분야와 응시자격까지 읽어서 걸러냄 · 매일 오전 7시 자동 갱신</p>
+     <b>알리오</b>(중앙 공공기관) + <b>클린아이</b>(지방공기업) · 공고 본문의 모집분야와 응시자격까지 읽어서 걸러냄 · 하루 4번 자동 갱신</p>
 </header>
 <div class="container">
   <div class="stats">
