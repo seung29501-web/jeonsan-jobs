@@ -39,6 +39,24 @@ CE_SIDO = {
     "007013": "전남광주", "007014": "경북", "007015": "경남", "007016": "제주",
 }
 
+# 나라일터(gojobs.go.kr) — 국가기관·지자체 공무원 채용
+GJ_BASE = "https://www.gojobs.go.kr"
+GJ_LIST = f"{GJ_BASE}/apmList_recruit.do?menuNo=401&mngrMenuYn=N"
+GJ_VIEW = f"{GJ_BASE}/apmView_recruit.do"
+
+# 공고 제목이 전산 계열인지 판정 (나라일터는 목록에 직렬 정보가 없어 제목으로만 판단한다).
+GJ_IT = re.compile(
+    r"(전산|정보통신|정보화|정보시스템|정보보안|정보기술|전산직|소프트웨어"
+    r"|빅데이터|공공데이터|데이터|인공지능|사이버|전자계산"
+    r"|(?<![A-Za-z])(?:IT|ICT|SW|AI)(?![A-Za-z]))",
+    re.I,
+)
+# 정년이 보장되지 않거나 채용공고가 아닌 글은 제외한다.
+GJ_SKIP = re.compile(
+    r"(기간제|시간선택제|임기제|촉탁|합격자|결과\s*발표|최종\s*발표|명단|취소|연기|재공고\s*안내"
+    r"|필기시험\s*장소|면접\s*일정|공고문\s*정정)"
+)
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -281,7 +299,7 @@ def fetch_cleaneye():
     """클린아이 잡플러스(지방공기업) — 서울교통공사·도시공사·시설공단 등 지방공공기관."""
     session = requests.Session()
     session.headers.update({**HEADERS, "Referer": CE_LIST, "X-Requested-With": "XMLHttpRequest"})
-    jobs = []
+    jobs, note = [], ""
     try:
         request(session, CE_LIST)
         query = {
@@ -313,10 +331,31 @@ def fetch_cleaneye():
                     "eng": "확인필요", "major": "언급없음", "it": "있음",
                     "it_fields": ["정보통신 분야"], "edu": "-",
                 })
+        if not jobs:
+            note = latest_closed(session)
     except Exception as e:
         print(f"[지방공기업] 수집 실패 ({type(e).__name__}) — 알리오 결과만 사용")
-    print(f"[지방공기업] 결과: {len(jobs)}건")
-    return jobs
+        return jobs, "수집 실패"
+    print(f"[지방공기업] 결과: {len(jobs)}건 {note}")
+    return jobs, note
+
+
+def latest_closed(session):
+    """지방공기업 전산직이 0건일 때, 가장 최근에 마감된 공고를 찾아 상황을 설명한다."""
+    try:
+        resp = request(session, CE_API, data={
+            "entRecruitList[]": CE_FIELD_INFO_COMM,
+            "jobTypeList[]": [CE_TYPE_REGULAR, CE_TYPE_PERMANENT],
+            "employGbList[]": [CE_CAREER_NEW, CE_CAREER_BOTH],
+            "pageIndex": "1",
+        })
+        rows = resp.json().get("list") or []
+        if not rows:
+            return ""
+        last = max(rows, key=lambda r: r.get("pubEndDate", ""))
+        return f"가장 최근 공고는 {last['pubEndDate']} 마감 ({clean(last['entName'])})"
+    except Exception:
+        return ""
 
 
 def fetch_alio():
@@ -334,27 +373,87 @@ def fetch_alio():
     return jobs
 
 
+def fetch_gojobs(max_pages=12):
+    """나라일터(gojobs.go.kr) — 국가기관·지자체 공무원 채용."""
+    session = requests.Session()
+    session.headers.update({**HEADERS, "Referer": GJ_LIST})
+    jobs = []
+    try:
+        request(session, f"{GJ_BASE}/mainIndex.do")
+        for page in range(1, max_pages + 1):
+            resp = request(session, f"{GJ_LIST}&pageIndex={page}")
+            tables = [t for t in BeautifulSoup(resp.text, "html.parser").select("table") if not t.get("class")]
+            rows = tables[0].select("tbody tr") if tables else []
+            if not rows:
+                break
+            for row in rows:
+                cells = row.select("td")
+                link = row.select_one("a[href]")
+                if len(cells) < 5 or not link:
+                    continue
+                title = clean(cells[1].get_text(" "))
+                org = clean(cells[2].get_text(" "))
+                if not GJ_IT.search(title) or GJ_SKIP.search(title):
+                    continue
+                if any(x in org for x in EXCLUDE_LOCATIONS):
+                    continue
+                args = re.findall(r"'([^']*)'", link["href"])
+                if len(args) < 2:
+                    continue
+                jobs.append({
+                    "title": title,
+                    "org": org,
+                    "location": "-",
+                    "job_type": "공무원",
+                    "deadline": clean(cells[4].get_text(" ")),
+                    "link": f"{GJ_VIEW}?menuNo=401&flag=U&searchJobsecode={args[0]}&empmnsn={args[1]}",
+                    "source": "나라일터",
+                    # 나라일터도 자격요건이 첨부 공고문에만 있어 자동 판정하지 않는다.
+                    "eng": "확인필요", "major": "언급없음", "it": "있음",
+                    "it_fields": ["공고 제목 기준"], "edu": "-",
+                })
+    except Exception as e:
+        print(f"[나라일터] 수집 실패 ({type(e).__name__})")
+    print(f"[나라일터] 결과: {len(jobs)}건")
+    return jobs
+
+
 def fetch_jobs():
-    jobs = fetch_alio()
-    jobs += fetch_cleaneye()
+    alio = fetch_alio()
+    local, local_note = fetch_cleaneye()
+    gov = fetch_gojobs()
+    jobs = alio + local + gov
+    sources = [
+        ("알리오", "중앙 공공기관", len(alio), ""),
+        ("지방공기업", "클린아이", len(local), local_note),
+        ("나라일터", "공무원", len(gov), ""),
+    ]
 
     penalty = {"없음": 0, "언급없음": 0, "무관": 0, "있음": 0,
                "평가반영": 2, "확인필요": 3, "제한있음": 3, "필수": 5}
     jobs.sort(key=lambda j: (penalty[j["eng"]] + penalty[j["major"]] + penalty[j["it"]], j["deadline"]))
-    return jobs
+    return jobs, sources
 
 
-def build_html(jobs):
+def build_html(jobs, sources):
     today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일 %H:%M")
     eng_cls = {"없음": "ok", "평가반영": "warn", "확인필요": "warn", "필수": "bad"}
     maj_cls = {"무관": "ok", "언급없음": "ok", "제한있음": "bad"}
     safe = sum(1 for j in jobs if j["eng"] == "없음" and j["major"] != "제한있음")
 
+    source_html = "".join(
+        f'<span class="row">{name}({desc}) '
+        f'<b class="{"zero" if count == 0 else ""}">{count}건</b>'
+        + (f' <span class="why">— {note}</span>' if note else "")
+        + "</span>"
+        for name, desc, count, note in sources
+    )
+
     if jobs:
         rows_html = "".join(
             f"""
         <tr data-eng="{j['eng']}" data-major="{j['major']}">
-          <td class="org">{j['org']}<div class="src {'ce' if j['source'] == '지방공기업' else ''}">{j['source']}</div></td>
+          <td class="org">{j['org']}<div class="src { {'지방공기업': 'ce', '나라일터': 'gj'}.get(j['source'], '') }">{j['source']}</div></td>
           <td><a href="{j['link']}" target="_blank" rel="noopener">{j['title']}</a>
               <div class="sub">{' · '.join(j['it_fields']) if j['it_fields'] else '전산 분야 확인 필요 (첨부 공고문 참조)'}</div></td>
           <td>{j['location']}</td>
@@ -385,6 +484,12 @@ def build_html(jobs):
   .stat-box .num {{ font-size: 28px; font-weight: 700; color: #1e3a5f; }}
   .stat-box .num.hl {{ color: #1a7f37; }}
   .stat-box .label {{ font-size: 12px; color: #888; margin-top: 2px; }}
+  .srcbar {{ background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08); font-size: 13px; }}
+  .srcbar b {{ margin-right: 14px; color: #1e3a5f; }}
+  .srcbar .row {{ display: inline-block; margin-right: 18px; }}
+  .srcbar .zero {{ color: #9a6400; }}
+  .srcbar .why {{ color: #999; font-size: 12px; }}
   .toolbar {{ background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
              box-shadow: 0 1px 4px rgba(0,0,0,.08); font-size: 13px; display: flex; gap: 20px; flex-wrap: wrap; }}
   .toolbar label {{ cursor: pointer; user-select: none; }}
@@ -399,6 +504,7 @@ def build_html(jobs):
   .src {{ display: inline-block; margin-top: 5px; padding: 1px 7px; border-radius: 10px;
          font-size: 10px; font-weight: 700; background: #eef1f6; color: #45607f; }}
   .src.ce {{ background: #f3ecfb; color: #6b3fa0; }}
+  .src.gj {{ background: #e7f3ee; color: #1d6b4f; }}
   .dl {{ white-space: nowrap; font-size: 11px; color: #777; line-height: 1.7; }}
   .dl b {{ color: #d14; font-size: 13px; }}
   .edu {{ color: #aaa; }}
@@ -425,6 +531,10 @@ def build_html(jobs):
     <div class="stat-box"><div class="num">{len(jobs)}</div><div class="label">전산 분야 있는 공고</div></div>
     <div class="stat-box"><div class="num" style="font-size:14px;padding-top:8px;">{today}</div><div class="label">마지막 업데이트</div></div>
   </div>
+  <div class="srcbar">
+    <b>수집 현황</b>
+    {source_html}
+  </div>
   <div class="toolbar">
     <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b>인 공고 숨기기</label>
     <label><input type="checkbox" id="hideMajor" checked> 전공 <b>제한있음</b>인 공고 숨기기</label>
@@ -448,7 +558,7 @@ def build_html(jobs):
     어학·전공을 자동 판정하지 않고 <b>확인필요</b>로 두었어.
   </p>
 </div>
-<footer>출처: 알리오(job.alio.go.kr) · 클린아이 잡플러스(job.cleaneye.go.kr) · GitHub Actions 자동 수집</footer>
+<footer>출처: 알리오 · 클린아이 잡플러스 · 나라일터 · GitHub Actions 자동 수집</footer>
 <script>
   function apply() {{
     var he = document.getElementById('hideEng').checked;
@@ -467,12 +577,12 @@ def build_html(jobs):
 
 if __name__ == "__main__":
     print("공고 수집 중...")
-    jobs = fetch_jobs()
+    jobs, sources = fetch_jobs()
 
     # 한 건도 못 가져왔으면 알리오가 죽은 것이므로, 빈 페이지로 덮어쓰지 않고 기존 사이트를 유지한다.
     if not jobs:
         raise SystemExit("수집 결과 0건 — 배포를 건너뛰고 기존 사이트를 유지한다")
 
     with open("index.html", "w", encoding="utf-8") as f:
-        f.write(build_html(jobs))
+        f.write(build_html(jobs, sources))
     print(f"index.html 생성 완료 ({len(jobs)}건)")
