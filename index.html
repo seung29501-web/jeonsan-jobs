@@ -27,6 +27,9 @@
   tbody tr:hover td { background: #f8f9ff; }
   .org { white-space: nowrap; color: #555; }
   .sub { font-size: 11px; color: #1a7f37; margin-top: 5px; font-weight: 600; }
+  .src { display: inline-block; margin-top: 5px; padding: 1px 7px; border-radius: 10px;
+         font-size: 10px; font-weight: 700; background: #eef1f6; color: #45607f; }
+  .src.ce { background: #f3ecfb; color: #6b3fa0; }
   .dl { white-space: nowrap; font-size: 11px; color: #777; line-height: 1.7; }
   .dl b { color: #d14; font-size: 13px; }
   .edu { color: #aaa; }
@@ -45,13 +48,13 @@
 <header>
   <h1>공공기관 전산직 채용공고 모아보기</h1>
   <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외<br>
-     알리오 필터만 믿지 않고 <b>공고 본문의 모집분야와 응시자격까지 읽어서</b> 걸러냄 · 매일 오전 7시 자동 갱신</p>
+     <b>알리오</b>(중앙 공공기관) + <b>클린아이</b>(지방공기업) · 공고 본문의 모집분야와 응시자격까지 읽어서 걸러냄 · 하루 4번 자동 갱신</p>
 </header>
 <div class="container">
   <div class="stats">
     <div class="stat-box"><div class="num hl">10</div><div class="label">토익·전공 조건 없는 공고</div></div>
     <div class="stat-box"><div class="num">14</div><div class="label">전산 분야 있는 공고</div></div>
-    <div class="stat-box"><div class="num" style="font-size:14px;padding-top:8px;">2026년 09월 11일 04:54</div><div class="label">마지막 업데이트</div></div>
+    <div class="stat-box"><div class="num" style="font-size:14px;padding-top:8px;">2026년 09월 11일 15:55</div><div class="label">마지막 업데이트</div></div>
   </div>
   <div class="toolbar">
     <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b>인 공고 숨기기</label>
@@ -64,7 +67,7 @@
       </thead>
       <tbody id="tbody">
         <tr data-eng="없음" data-major="무관">
-          <td class="org">예금보험공사</td>
+          <td class="org">예금보험공사<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304400" target="_blank" rel="noopener">2026년도 예금보험공사 신입직원 채용안내</a>
               <div class="sub">디지털</div></td>
           <td>서울</td>
@@ -73,7 +76,7 @@
           <td class="dl">정규직<br><b>26.09.11 D-Day</b><br><span class="edu">학력무관,고졸</span></td>
         </tr>
         <tr data-eng="없음" data-major="무관">
-          <td class="org">한국지능정보사회진흥원</td>
+          <td class="org">한국지능정보사회진흥원<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304405" target="_blank" rel="noopener">2026년 한국지능정보사회진흥원 하반기 정규직 및 무기계약직(일반직) 채용공고</a>
               <div class="sub">Ⅰ-④정책·디지털포용</div></td>
           <td>대구 외 1</td>
@@ -82,7 +85,7 @@
           <td class="dl">무기계약직 외 1<br><b>26.09.14 D-2</b><br><span class="edu">학력무관</span></td>
         </tr>
         <tr data-eng="없음" data-major="무관">
-          <td class="org">신용보증기금</td>
+          <td class="org">신용보증기금<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304432" target="_blank" rel="noopener">2026년도 하반기 신용보증기금 신입직원 채용</a>
               <div class="sub">[정규직 5급] 인공지능 · [정규직 5급] ICT · [정규직 6급] 고교 정보통신</div></td>
           <td>서울 외 15</td>
@@ -91,7 +94,7 @@
           <td class="dl">정규직<br><b>26.09.16 D-4</b><br><span class="edu">학력무관</span></td>
         </tr>
         <tr data-eng="없음" data-major="언급없음">
-          <td class="org">한국학중앙연구원</td>
+          <td class="org">한국학중앙연구원<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304545" target="_blank" rel="noopener">기능직(통신) 채용 공고</a>
               <div class="sub">기능직(통신)</div></td>
           <td>경기</td>
@@ -100,7 +103,7 @@
           <td class="dl">정규직<br><b>26.09.17 D-5</b><br><span class="edu">학력무관</span></td>
         </tr>
         <tr data-eng="없음" data-major="언급없음">
-          <td class="org">한국수목원정원관리원</td>
+          <td class="org">한국수목원정원관리원<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304713" target="_blank" rel="noopener">한국수목원정원관리원 2026년 제3차 신규직원 채용 공고</a>
               <div class="sub">(4급) AI·디지털 · (공무직) 정보화기술지원</div></td>
           <td>강원 외 3</td>
@@ -109,7 +112,7 @@
           <td class="dl">무기계약직 외 1<br><b>26.09.21 D-9</b><br><span class="edu">학력무관,고졸,석사</span></td>
         </tr>
         <tr data-eng="없음" data-major="무관">
-          <td class="org">중소기업은행</td>
+          <td class="org">중소기업은행<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304557" target="_blank" rel="noopener">2026년 하반기 IBK기업은행 일반직원(정규직) 수시채용 공고</a>
               <div class="sub">IT 사업관리·컨설팅</div></td>
           <td>서울 외 16</td>
@@ -118,7 +121,7 @@
           <td class="dl">정규직<br><b>26.09.21 D-9</b><br><span class="edu">학력무관,대졸(4년),석사,박사</span></td>
         </tr>
         <tr data-eng="없음" data-major="언급없음">
-          <td class="org">한국전력기술주식회사</td>
+          <td class="org">한국전력기술주식회사<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304717" target="_blank" rel="noopener">2026년도 하반기 정규직(신입사원) 채용공고</a>
               <div class="sub">전산(대졸수준)</div></td>
           <td>경북</td>
@@ -127,7 +130,7 @@
           <td class="dl">정규직<br><b>26.09.22 D-10</b><br><span class="edu">학력무관,고졸</span></td>
         </tr>
         <tr data-eng="없음" data-major="무관">
-          <td class="org">한국고용정보원</td>
+          <td class="org">한국고용정보원<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304653" target="_blank" rel="noopener">2026년도 한국고용정보원 2차 직원 채용 공고</a>
               <div class="sub">일반직5급-정보화(일반) · 일반직5급-정보화(지역인재) · 무기계약직-정보화(전문원)</div></td>
           <td>인천 외 1</td>
@@ -136,7 +139,7 @@
           <td class="dl">무기계약직 외 1<br><b>26.09.22 D-10</b><br><span class="edu">학력무관,석사,박사</span></td>
         </tr>
         <tr data-eng="없음" data-major="언급없음">
-          <td class="org">국가생명윤리정책원</td>
+          <td class="org">국가생명윤리정책원<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304793" target="_blank" rel="noopener">제2026-3차 직원 채용 공고</a>
               <div class="sub">전산직(정규직) 5급(A09) · 전산직(계약직) 5급(B12)</div></td>
           <td>서울</td>
@@ -145,7 +148,7 @@
           <td class="dl">비정규직 외 1<br><b>26.09.23 D-11</b><br><span class="edu">학력무관,중졸이하,고졸,대졸(2~3년),대졸(4년),석사,박사</span></td>
         </tr>
         <tr data-eng="없음" data-major="언급없음">
-          <td class="org">한국남부발전(주)</td>
+          <td class="org">한국남부발전(주)<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304839" target="_blank" rel="noopener">한국남부발전(주) 2026년 하반기 신입사원 및 별정직 채용공고</a>
               <div class="sub">신입사원(대졸수준-보훈(ICT))</div></td>
           <td>인천 외 6</td>
@@ -154,7 +157,7 @@
           <td class="dl">정규직<br><b>26.09.28 D-16</b><br><span class="edu">학력무관,고졸</span></td>
         </tr>
         <tr data-eng="필수" data-major="무관">
-          <td class="org">인천국제공항공사</td>
+          <td class="org">인천국제공항공사<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304492" target="_blank" rel="noopener">2026년 신입직원(일반직, 안전보안직) 채용 공고</a>
               <div class="sub">전산 · 통신</div></td>
           <td>인천</td>
@@ -163,7 +166,7 @@
           <td class="dl">정규직<br><b>26.09.15 D-3</b><br><span class="edu">학력무관</span></td>
         </tr>
         <tr data-eng="필수" data-major="무관">
-          <td class="org">한국장학재단</td>
+          <td class="org">한국장학재단<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304490" target="_blank" rel="noopener">한국장학재단 2026년 하반기 종합직 채용 공고(일반행정, IT 개발운영, 시설관리(경력))</a>
               <div class="sub">5급-IT 개발운영</div></td>
           <td>대구</td>
@@ -172,7 +175,7 @@
           <td class="dl">정규직<br><b>26.09.15 D-3</b><br><span class="edu">학력무관</span></td>
         </tr>
         <tr data-eng="필수" data-major="무관">
-          <td class="org">한국가스공사</td>
+          <td class="org">한국가스공사<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304489" target="_blank" rel="noopener">2026년 하반기 일반직(신입, 경력), 연구직 및 별정직 채용공고</a>
               <div class="sub">일반직(신입, 6급) - 전산</div></td>
           <td>서울 외 14</td>
@@ -181,7 +184,7 @@
           <td class="dl">정규직<br><b>26.09.15 D-3</b><br><span class="edu">학력무관,석사</span></td>
         </tr>
         <tr data-eng="필수" data-major="제한있음">
-          <td class="org">한국전력공사</td>
+          <td class="org">한국전력공사<div class="src ">알리오</div></td>
           <td><a href="https://job.alio.go.kr/recruitview.do?idx=304551" target="_blank" rel="noopener">2026년도 하반기 4직급 대졸수준 신입사원 채용공고</a>
               <div class="sub">ICT</div></td>
           <td>서울 외 15</td>
@@ -197,10 +200,12 @@
     전산 분야가 하나도 없는 공고는 아예 목록에서 뺐어.<br>
     <b>어학요건 / 전공요건</b>은 <b>응시자격</b> 항목만 읽어서 판정했어 (전형절차의 &ldquo;전공시험&rdquo; 같은 건 요건이 아니라 제외).
     <b>평가반영</b>은 지원자격은 아니지만 서류 점수에 반영되는 경우, <b>확인필요</b>는 애매한 경우야.<br>
-    통합채용은 분야마다 조건이 달라서 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.
+    통합채용은 분야마다 조건이 달라서 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.<br>
+    <b style="color:#6b3fa0">지방공기업</b> 배지가 붙은 건 클린아이에서 가져온 거야. 이쪽은 자격요건을 첨부 공고문에만 적는 곳이 많아서
+    어학·전공을 자동 판정하지 않고 <b>확인필요</b>로 두었어.
   </p>
 </div>
-<footer>출처: 알리오(job.alio.go.kr) · GitHub Actions 자동 수집</footer>
+<footer>출처: 알리오(job.alio.go.kr) · 클린아이 잡플러스(job.cleaneye.go.kr) · GitHub Actions 자동 수집</footer>
 <script>
   function apply() {
     var he = document.getElementById('hideEng').checked;

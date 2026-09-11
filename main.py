@@ -2,7 +2,11 @@ import re
 import time
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+# 알리오가 막혀 재시도가 길어져도 실행 전체가 이 시간을 넘기지 않게 한다.
+START = time.monotonic()
+BUDGET = 420
 
 BASE = "https://job.alio.go.kr"
 LIST_URL = f"{BASE}/recruit.do"
@@ -16,6 +20,24 @@ CAREER_NEW = "R2010"           # 채용구분 - 신입
 CAREER_BOTH = "R2030"          # 채용구분 - 신입+경력
 
 EXCLUDE_LOCATIONS = ["제주"]
+
+# 클린아이 잡플러스(지방공기업) — 지방공공기관 채용정보
+CE_BASE = "https://job.cleaneye.go.kr"
+CE_LIST = f"{CE_BASE}/user/ypRecruitment.do"
+CE_API = f"{CE_BASE}/user/selectYpRecruitment.do"
+CE_FIELD_INFO_COMM = "700020"  # 모집분야 - 정보통신
+CE_TYPE_REGULAR = "702001"     # 고용형태 - 일반정규직
+CE_TYPE_PERMANENT = "702002"   # 고용형태 - 무기계약직
+CE_CAREER_NEW = "703001"       # 채용구분 - 신입
+CE_CAREER_BOTH = "703003"      # 채용구분 - 신입+경력
+CE_STATUS_ONGOING = "709001"   # 진행중
+CE_JOBTYPE = {"702001": "정규직", "702002": "무기계약직"}
+CE_SIDO = {
+    "007001": "서울", "007002": "부산", "007003": "대구", "007004": "인천",
+    "007006": "대전", "007007": "울산", "007017": "세종", "007008": "경기",
+    "007009": "강원", "007010": "충북", "007011": "충남", "007012": "전북",
+    "007013": "전남광주", "007014": "경북", "007015": "경남", "007016": "제주",
+}
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -57,8 +79,13 @@ def clean(text):
 
 
 def request(session, url, data=None, tries=4):
-    """알리오는 점검·과부하로 종종 응답이 끊겨서 실패하면 간격을 늘려가며 재시도한다."""
+    """알리오는 클라우드 IP를 간헐적으로 막아서, 실패하면 간격을 늘려가며 재시도한다.
+
+    재시도가 요청마다 쌓이면 실행이 끝없이 길어지므로 전체 예산(BUDGET) 안에서만 기다린다.
+    """
     for attempt in range(1, tries + 1):
+        if time.monotonic() - START > BUDGET:
+            raise requests.ConnectionError("전체 시간 예산 초과")
         try:
             if data is None:
                 resp = session.get(url, timeout=30)
@@ -70,7 +97,7 @@ def request(session, url, data=None, tries=4):
         except requests.RequestException as e:
             if attempt == tries:
                 raise
-            wait = 10 * attempt
+            wait = 15 * attempt
             print(f"  요청 실패 {attempt}/{tries} ({type(e).__name__}) — {wait}초 후 재시도")
             time.sleep(wait)
 
@@ -206,7 +233,7 @@ def enrich(session, jobs):
     kept, dropped = [], []
     for job in jobs:
         try:
-            resp = request(session, job["link"])
+            resp = request(session, job["link"], tries=2)
             fields, sections, positions = parse_detail(resp.text)
             eng, major, it, it_fields = judge(fields, sections, positions, job["title"])
             job.update(eng=eng, major=major, it=it, it_fields=it_fields,
@@ -223,18 +250,73 @@ def enrich(session, jobs):
         kept.append(job)
         tag = ", ".join(job["it_fields"])[:40] or "확인필요"
         print(f"  {job['org'][:16]:<17} 어학={job['eng']:<5} 전공={job['major']:<5} 분야={tag}")
-        time.sleep(0.3)
+        time.sleep(0.8)
 
     print(f"전산 분야 없어서 제외: {len(dropped)}건")
     return kept
 
 
-def fetch_jobs():
+def fetch_cleaneye():
+    """클린아이 잡플러스(지방공기업) — 서울교통공사·도시공사·시설공단 등 지방공공기관."""
+    session = requests.Session()
+    session.headers.update({**HEADERS, "Referer": CE_LIST, "X-Requested-With": "XMLHttpRequest"})
+    jobs = []
+    try:
+        request(session, CE_LIST)
+        query = {
+            "entRecruitList[]": CE_FIELD_INFO_COMM,
+            "jobTypeList[]": [CE_TYPE_REGULAR, CE_TYPE_PERMANENT],
+            "employGbList[]": [CE_CAREER_NEW, CE_CAREER_BOTH],
+            "status": CE_STATUS_ONGOING,
+        }
+        for page in range(1, 11):
+            resp = request(session, CE_API, data={**query, "pageIndex": str(page)})
+            rows = resp.json().get("list") or []
+            print(f"[지방공기업 {page}p] 수신 {len(rows)}건")
+            if not rows:
+                break
+            for row in rows:
+                location = CE_SIDO.get(row.get("sidoCd", ""), "")
+                if any(x in location for x in EXCLUDE_LOCATIONS):
+                    continue
+                jobs.append({
+                    "title": clean(row.get("entTitle", "")),
+                    "org": clean(row.get("entName", "")),
+                    "location": location or "-",
+                    "job_type": CE_JOBTYPE.get(row.get("jobType", ""), "-"),
+                    "deadline": row.get("pubEndDate", "-"),
+                    "link": (f"{CE_BASE}/user/ypCareersData.do?empyear={row.get('empyear')}"
+                             f"&ypEntId={row.get('ypEntId')}&entSeq={row.get('entSeq')}"),
+                    "source": "지방공기업",
+                    # 클린아이는 상세 자격요건을 첨부 공고문에만 두는 곳이 많아 자동 판정을 하지 않는다.
+                    "eng": "확인필요", "major": "언급없음", "it": "있음",
+                    "it_fields": ["정보통신 분야"], "edu": "-",
+                })
+    except Exception as e:
+        print(f"[지방공기업] 수집 실패 ({type(e).__name__}) — 알리오 결과만 사용")
+    print(f"[지방공기업] 결과: {len(jobs)}건")
+    return jobs
+
+
+def fetch_alio():
     session = requests.Session()
     session.headers.update(HEADERS)
-    jobs = fetch_list(session)
+    try:
+        jobs = fetch_list(session)
+    except Exception as e:
+        print(f"[알리오] 접속 실패 ({type(e).__name__}) — 지방공기업만으로 진행")
+        return []
     print(f"목록 필터링 후: {len(jobs)}건 — 상세 확인 중")
     jobs = enrich(session, jobs)
+    for job in jobs:
+        job.setdefault("source", "알리오")
+    return jobs
+
+
+def fetch_jobs():
+    jobs = fetch_alio()
+    jobs += fetch_cleaneye()
+
     penalty = {"없음": 0, "언급없음": 0, "무관": 0, "있음": 0,
                "평가반영": 2, "확인필요": 3, "제한있음": 3, "필수": 5}
     jobs.sort(key=lambda j: (penalty[j["eng"]] + penalty[j["major"]] + penalty[j["it"]], j["deadline"]))
@@ -242,7 +324,7 @@ def fetch_jobs():
 
 
 def build_html(jobs):
-    today = datetime.now().strftime("%Y년 %m월 %d일 %H:%M")
+    today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일 %H:%M")
     eng_cls = {"없음": "ok", "평가반영": "warn", "확인필요": "warn", "필수": "bad"}
     maj_cls = {"무관": "ok", "언급없음": "ok", "제한있음": "bad"}
     safe = sum(1 for j in jobs if j["eng"] == "없음" and j["major"] != "제한있음")
@@ -251,7 +333,7 @@ def build_html(jobs):
         rows_html = "".join(
             f"""
         <tr data-eng="{j['eng']}" data-major="{j['major']}">
-          <td class="org">{j['org']}</td>
+          <td class="org">{j['org']}<div class="src {'ce' if j['source'] == '지방공기업' else ''}">{j['source']}</div></td>
           <td><a href="{j['link']}" target="_blank" rel="noopener">{j['title']}</a>
               <div class="sub">{' · '.join(j['it_fields']) if j['it_fields'] else '전산 분야 확인 필요 (첨부 공고문 참조)'}</div></td>
           <td>{j['location']}</td>
@@ -293,6 +375,9 @@ def build_html(jobs):
   tbody tr:hover td {{ background: #f8f9ff; }}
   .org {{ white-space: nowrap; color: #555; }}
   .sub {{ font-size: 11px; color: #1a7f37; margin-top: 5px; font-weight: 600; }}
+  .src {{ display: inline-block; margin-top: 5px; padding: 1px 7px; border-radius: 10px;
+         font-size: 10px; font-weight: 700; background: #eef1f6; color: #45607f; }}
+  .src.ce {{ background: #f3ecfb; color: #6b3fa0; }}
   .dl {{ white-space: nowrap; font-size: 11px; color: #777; line-height: 1.7; }}
   .dl b {{ color: #d14; font-size: 13px; }}
   .edu {{ color: #aaa; }}
@@ -311,7 +396,7 @@ def build_html(jobs):
 <header>
   <h1>공공기관 전산직 채용공고 모아보기</h1>
   <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외<br>
-     알리오 필터만 믿지 않고 <b>공고 본문의 모집분야와 응시자격까지 읽어서</b> 걸러냄 · 매일 오전 7시 자동 갱신</p>
+     <b>알리오</b>(중앙 공공기관) + <b>클린아이</b>(지방공기업) · 공고 본문의 모집분야와 응시자격까지 읽어서 걸러냄 · 하루 4번 자동 갱신</p>
 </header>
 <div class="container">
   <div class="stats">
@@ -337,10 +422,12 @@ def build_html(jobs):
     전산 분야가 하나도 없는 공고는 아예 목록에서 뺐어.<br>
     <b>어학요건 / 전공요건</b>은 <b>응시자격</b> 항목만 읽어서 판정했어 (전형절차의 &ldquo;전공시험&rdquo; 같은 건 요건이 아니라 제외).
     <b>평가반영</b>은 지원자격은 아니지만 서류 점수에 반영되는 경우, <b>확인필요</b>는 애매한 경우야.<br>
-    통합채용은 분야마다 조건이 달라서 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.
+    통합채용은 분야마다 조건이 달라서 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.<br>
+    <b style="color:#6b3fa0">지방공기업</b> 배지가 붙은 건 클린아이에서 가져온 거야. 이쪽은 자격요건을 첨부 공고문에만 적는 곳이 많아서
+    어학·전공을 자동 판정하지 않고 <b>확인필요</b>로 두었어.
   </p>
 </div>
-<footer>출처: 알리오(job.alio.go.kr) · GitHub Actions 자동 수집</footer>
+<footer>출처: 알리오(job.alio.go.kr) · 클린아이 잡플러스(job.cleaneye.go.kr) · GitHub Actions 자동 수집</footer>
 <script>
   function apply() {{
     var he = document.getElementById('hideEng').checked;
