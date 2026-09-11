@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 # 알리오가 막혀 재시도가 길어져도 실행 전체가 이 시간을 넘기지 않게 한다.
 START = time.monotonic()
-BUDGET = 420
+BUDGET = 900
 
 BASE = "https://job.alio.go.kr"
 LIST_URL = f"{BASE}/recruit.do"
@@ -47,12 +47,28 @@ HEADERS = {
     "Referer": LIST_URL,
 }
 
-# 모집분야명이 전산 계열인지 판정. 단독 "보안"/"개발"은 안전직·연구직 오탐이 많아 제외한다.
+# 모집분야명이 전산 계열인지 판정.
+# 단독 "보안"/"개발"/"시스템"은 안전직·연구직·설비직 오탐이 많아 쓰지 않는다.
 IT_FIELD = re.compile(
     r"(전산|정보통신|정보시스템|정보화|정보처리|정보보안|사이버보안|보안관제"
-    r"|소프트웨어|디지털|빅데이터|데이터|인공지능|네트워크|통신|시스템|개발운영"
-    r"|\bIT\b|\bICT\b|\bSW\b|\bAI\b|\bDX\b)",
+    r"|소프트웨어|디지털|빅데이터|데이터|인공지능|네트워크|통신"
+    r"|시스템\s*운영|시스템\s*개발|개발운영|정보기술"
+    # 한글·밑줄 옆에 붙은 약어는 \b 경계가 잡히지 않아(예: "_SW정책연구") 영문자 기준으로 판정한다.
+    r"|(?<![A-Za-z])(?:IT|ICT|SW|AI|DX)(?![A-Za-z]))",
     re.I,
+)
+
+# 위 키워드가 걸려도 실제로는 전산직이 아닌 분야명. (예: "전기기계통신기사_기계")
+# "무기계약직" 안의 "기계"에 걸리지 않도록 앞에 "무"가 오는 경우는 뺀다.
+IT_FIELD_NOT = re.compile(r"((?<!무)기계|토목|건축|화공|간호|의무|약무|조리|미화|경비|운전|청원경찰)")
+
+# 전산 분야라도 계약직·대체인력은 제외한다. 단 무기계약직은 정년이 보장되므로 남긴다.
+FIELD_TEMPORARY = re.compile(r"((?<!무기)계약직|기간제|인턴|육아휴직|대체인력|단시간)")
+
+# 제목만으로 전산과 무관함이 분명한 공고는 상세페이지를 열지 않고 건너뛴다.
+SKIP_TITLE = re.compile(
+    r"(간호사|간호직|간호조무|조리원|조리사|환경미화|미화원|경비원|운전원|전문의|의무직"
+    r"|약사|임상병리|방사선사|물리치료|작업치료|사회복지사|청원경찰|장례|주차관리|치과위생)"
 )
 
 # --- 응시자격 판정 규칙 ---
@@ -162,7 +178,10 @@ def judge(fields, sections, positions, title):
     else:
         major = "언급없음"
 
-    it_fields = [p for p in positions if IT_FIELD.search(p)]
+    it_fields = [p for p in positions
+                 if IT_FIELD.search(p)
+                 and not IT_FIELD_NOT.search(p)
+                 and not FIELD_TEMPORARY.search(p)]
     if it_fields:
         it = "있음"
     elif positions:
@@ -178,9 +197,10 @@ def fetch_list(session, max_pages=10):
     items, seen = [], set()
 
     for page in range(1, max_pages + 1):
+        # NCS "정보통신" 태그는 기관이 잘 안 붙여서(101건 중 16건만) 쓰지 않는다.
+        # 대신 전체를 받아 상세페이지의 모집분야로 전산 여부를 판정한다.
         payload = [
             ("pageNo", str(page)),
-            ("detail_code", NCS_INFO_COMM),
             ("work_type", WORK_TYPE_REGULAR),
             ("work_type", WORK_TYPE_PERMANENT),
             ("career", CAREER_NEW),
@@ -211,6 +231,8 @@ def fetch_list(session, max_pages=10):
 
             location = clean(cells[4].get_text(" "))
             if any(x in location for x in EXCLUDE_LOCATIONS):
+                continue
+            if SKIP_TITLE.search(title):
                 continue
 
             link_tag = cells[2].select_one("a[href]")
@@ -244,13 +266,12 @@ def enrich(session, jobs):
 
         if job["it"] == "없음":
             dropped.append(job)
-            print(f"  {job['org'][:16]:<17} 제외 — 전산 모집분야 없음")
             continue
 
         kept.append(job)
         tag = ", ".join(job["it_fields"])[:40] or "확인필요"
         print(f"  {job['org'][:16]:<17} 어학={job['eng']:<5} 전공={job['major']:<5} 분야={tag}")
-        time.sleep(0.8)
+        time.sleep(0.4)
 
     print(f"전산 분야 없어서 제외: {len(dropped)}건")
     return kept
