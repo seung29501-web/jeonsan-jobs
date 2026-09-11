@@ -2,9 +2,11 @@ name: daily-post
 
 on:
   schedule:
-    # 알리오가 점검 등으로 죽어 있으면 한 번 놓치므로 오전 7시와 10시(KST) 두 번 돌린다.
+    # 알리오가 클라우드 IP를 간헐적으로 막아서, 하루 네 번(KST 07·11·15·20시) 시도해 한 번은 걸리게 한다.
     - cron: '0 22 * * *'
-    - cron: '0 1 * * *'
+    - cron: '0 2 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 11 * * *'
   workflow_dispatch:
 
 permissions:
