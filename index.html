@@ -46,6 +46,13 @@
   .chip.alio i { background: #4f46e5; } .chip.local i { background: #a855f7; } .chip.gov i { background: #10b981; }
   .chip b { font-weight: 700; }
   .chip em { font-style: normal; color: var(--muted); font-size: 11.5px; }
+  .tabs { display: flex; gap: 6px; padding: 12px 14px 0; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+         border-radius: 999px; padding: 7px 15px; font-size: 13px; font-weight: 600;
+         cursor: pointer; font-family: inherit; }
+  .tab b { margin-left: 5px; font-weight: 800; }
+  .tab:hover { border-color: var(--brand); color: var(--brand); }
+  .tab.on { background: var(--brand); border-color: var(--brand); color: #fff; }
   .tools { padding: 13px 18px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; }
   .tools label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
   .tablewrap { overflow-x: auto; }
@@ -104,10 +111,10 @@
 </header>
 <div class="wrap">
   <div class="stats">
-    <div class="stat"><div class="n good">4</div><div class="l">내 자격증 우대</div></div>
+    <div class="stat"><div class="n good">3</div><div class="l">내 자격증 우대</div></div>
     <div class="stat"><div class="n hot">8</div><div class="l">일주일 내 마감</div></div>
     <div class="stat"><div class="n">19</div><div class="l">전체 공고</div></div>
-    <div class="stat"><div class="n sm">09월 14일 19:48</div><div class="l">마지막 업데이트</div></div>
+    <div class="stat"><div class="n sm">09월 14일 20:03</div><div class="l">마지막 업데이트</div></div>
   </div>
 
   <div class="panel">
@@ -116,6 +123,11 @@
   </div>
 
   <div class="panel">
+    <div class="tabs">
+      <button class="tab on" data-k="ALL">전체 <b>19</b></button>
+      <button class="tab" data-k="IT">전산 · IT <b>8</b></button>
+      <button class="tab" data-k="OFFICE">사무 · 행정 <b>17</b></button>
+    </div>
     <div class="tools">
       <label><input type="checkbox" id="hideEng"> 어학 <b>확인필요</b>도 숨기기</label>
       <label><input type="checkbox" id="hideMajor"> 학력 <b>확인필요</b>도 숨기기</label>
@@ -127,7 +139,7 @@
           <th>기관</th><th>공고 / 전산 모집분야</th><th>지역</th><th>어학</th><th>전공</th><th>학력</th><th>마감</th>
         </tr></thead>
         <tbody id="tbody">
-        <tr data-eng="확인필요" data-edu="무관">
+        <tr data-eng="확인필요" data-edu="무관" data-kind="IT OFFICE">
           <td data-label="기관">
             <div class="org">한국수목원정원관리원</div>
             <span class="src alio">알리오</span>
@@ -150,7 +162,7 @@
             <div class="meta">무기계약직 외 1</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="IT OFFICE">
           <td data-label="기관">
             <div class="org">한국고용정보원</div>
             <span class="src alio">알리오</span>
@@ -165,7 +177,7 @@
           <td data-label="전공"><span class="pill ok">무관</span></td>
           <td data-label="학력">
             <span class="pill ok">무관</span>
-            
+            <div class="region">비수도권 지역인재</div>
           </td>
           <td data-label="마감">
             <div class="due">2026.09.22</div>
@@ -173,30 +185,7 @@
             <div class="meta">무기계약직 외 1</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
-          <td data-label="기관">
-            <div class="org">한국국토정보공사</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304786" target="_blank" rel="noopener">2026년 한국국토정보공사 장애인 맞춤훈련 채용(사무지원) 공고</a>
-            <span class="cert">정보처리·빅데이터 우대</span>
-            <div class="fields">업무직(사무지원)</div>
-          </td>
-          <td data-label="지역">전북</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="학력">
-            <span class="pill ok">무관</span>
-            
-          </td>
-          <td data-label="마감">
-            <div class="due">2026.09.23</div>
-            <span class="dday ">D-9</span>
-            <div class="meta">무기계약직</div>
-          </td>
-        </tr>
-        <tr data-eng="확인필요" data-edu="무관">
+        <tr data-eng="확인필요" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">한국콘텐츠진흥원</div>
             <span class="src alio">알리오</span>
@@ -219,7 +208,7 @@
             <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="확인필요" data-edu="확인필요">
+        <tr data-eng="확인필요" data-edu="확인필요" data-kind="IT">
           <td data-label="기관">
             <div class="org">경북대학교 정보화본부</div>
             <span class="src gov">나라일터</span>
@@ -242,7 +231,7 @@
             <div class="meta">공무원</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">한국학중앙연구원</div>
             <span class="src alio">알리오</span>
@@ -265,7 +254,7 @@
             <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="확인필요" data-edu="무관">
+        <tr data-eng="확인필요" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">부산항만공사</div>
             <span class="src alio">알리오</span>
@@ -288,7 +277,7 @@
             <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">88관광개발(주)</div>
             <span class="src alio">알리오</span>
@@ -311,30 +300,30 @@
             <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
-            <div class="org">중소기업은행</div>
+            <div class="org">국민연금공단</div>
             <span class="src alio">알리오</span>
           </td>
           <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304557" target="_blank" rel="noopener">2026년 하반기 IBK기업은행 일반직원(정규직) 수시채용 공고</a>
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304656" target="_blank" rel="noopener">2026년도 하반기 일반직 신입직원 공개채용 공고</a>
             
-            <div class="fields">IT 사업관리·컨설팅</div>
+            <div class="fields">6급 사무직 일반 · 6급 사무직 사회형평 · 6급보 사무직 일반 · 6급보 사무직 사회형평</div>
           </td>
-          <td data-label="지역">서울 외 16</td>
+          <td data-label="지역">서울 외 15</td>
           <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
           <td data-label="학력">
             <span class="pill ok">무관</span>
             
           </td>
           <td data-label="마감">
-            <div class="due">2026.09.21</div>
-            <span class="dday soon">D-7</span>
+            <div class="due">2026.09.18</div>
+            <span class="dday soon">D-4</span>
             <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">한국산림복지진흥원</div>
             <span class="src alio">알리오</span>
@@ -357,7 +346,7 @@
             <div class="meta">무기계약직</div>
           </td>
         </tr>
-        <tr data-eng="확인필요" data-edu="확인필요">
+        <tr data-eng="확인필요" data-edu="확인필요" data-kind="IT">
           <td data-label="기관">
             <div class="org">기후에너지환경부 전북지방환경청</div>
             <span class="src gov">나라일터</span>
@@ -380,7 +369,7 @@
             <div class="meta">공무원</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="IT OFFICE">
           <td data-label="기관">
             <div class="org">한국전력기술주식회사</div>
             <span class="src alio">알리오</span>
@@ -403,7 +392,30 @@
             <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
+          <td data-label="기관">
+            <div class="org">한국국토정보공사</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304786" target="_blank" rel="noopener">2026년 한국국토정보공사 장애인 맞춤훈련 채용(사무지원) 공고</a>
+            
+            <div class="fields">업무직(사무지원)</div>
+          </td>
+          <td data-label="지역">전북</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">무관</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.23</div>
+            <span class="dday ">D-9</span>
+            <div class="meta">무기계약직</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관" data-kind="IT OFFICE">
           <td data-label="기관">
             <div class="org">국가생명윤리정책원</div>
             <span class="src alio">알리오</span>
@@ -426,7 +438,7 @@
             <div class="meta">비정규직 외 1</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="IT OFFICE">
           <td data-label="기관">
             <div class="org">(재)한국우편사업진흥원</div>
             <span class="src alio">알리오</span>
@@ -449,7 +461,7 @@
             <div class="meta">무기계약직 외 1</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">재단법인 한국장기조직기증원</div>
             <span class="src alio">알리오</span>
@@ -472,7 +484,7 @@
             <div class="meta">무기계약직 외 2</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">세계김치연구소</div>
             <span class="src alio">알리오</span>
@@ -495,7 +507,7 @@
             <div class="meta">무기계약직 외 1</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="IT OFFICE">
           <td data-label="기관">
             <div class="org">한국연구재단</div>
             <span class="src alio">알리오</span>
@@ -518,7 +530,7 @@
             <div class="meta">무기계약직 외 2</div>
           </td>
         </tr>
-        <tr data-eng="확인필요" data-edu="무관">
+        <tr data-eng="확인필요" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">무역안보관리원</div>
             <span class="src alio">알리오</span>
@@ -541,7 +553,7 @@
             <div class="meta">무기계약직</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-edu="무관">
+        <tr data-eng="없음" data-edu="무관" data-kind="OFFICE">
           <td data-label="기관">
             <div class="org">중소기업기술정보진흥원</div>
             <span class="src alio">알리오</span>
@@ -579,15 +591,27 @@
 <footer>출처: 알리오 · 클린아이 잡플러스 · 나라일터 · GitHub Actions 자동 수집</footer>
 <script>
   var he = document.getElementById('hideEng'), hm = document.getElementById('hideMajor');
+  var kind = 'ALL';
   function apply() {
     var shown = 0;
     document.querySelectorAll('#tbody tr[data-eng]').forEach(function (tr) {
-      var hide = (he.checked && tr.dataset.eng === '확인필요') || (hm.checked && tr.dataset.edu === '확인필요');
+      var kinds = (tr.dataset.kind || '').split(' ');
+      var hide = (kind !== 'ALL' && kinds.indexOf(kind) < 0)
+              || (he.checked && tr.dataset.eng === '확인필요')
+              || (hm.checked && tr.dataset.edu === '확인필요');
       tr.hidden = hide;
       if (!hide) shown++;
     });
     document.getElementById('count').textContent = shown + '건 표시 중';
   }
+  document.querySelectorAll('.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      kind = btn.dataset.k;
+      apply();
+    });
+  });
   he.addEventListener('change', apply);
   hm.addEventListener('change', apply);
   apply();

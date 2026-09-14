@@ -298,9 +298,16 @@ def judge(fields, sections, positions, title, notice=""):
     else:
         fit = "확인필요"
 
+    # 한 공고에 전산과 사무가 같이 있으면 두 분류에 모두 들어간다.
+    kinds = []
+    if any(IT_FIELD.search(x) for x in open_fields):
+        kinds.append("IT")
+    if any(OFFICE_FIELD.search(x) and not IT_FIELD.search(x) for x in open_fields):
+        kinds.append("OFFICE")
+
     regions = sorted({clean(m.group(1)) for m in REGION_TALENT.finditer(basis)})
     return {
-        "eng": eng, "major": major, "edu": edu, "fit": fit,
+        "eng": eng, "major": major, "edu": edu, "fit": fit, "kinds": kinds or ["OFFICE"],
         "it_fields": open_fields, "blocked": blocked,
         "region": ", ".join(r + " 지역인재" for r in regions[:2]),
         "cert": bool(CERT_BONUS.search(basis)),
@@ -422,7 +429,7 @@ def enrich(session, jobs):
         except Exception as e:
             print(f"  상세 조회 실패 ({job['org']}): {e}")
             job.update(eng="확인필요", major="언급없음", edu="확인필요", fit="확인필요",
-                       it_fields=[], blocked=[], region="", cert=False, edu_raw="-")
+                       it_fields=[], blocked=[], region="", cert=False, edu_raw="-", kinds=["IT"])
 
         # 요청한 조건에 어긋나는 공고는 목록에서 뺀다.
         if job["fit"] == "막힘":
@@ -482,7 +489,7 @@ def fetch_cleaneye():
                     # 클린아이는 상세 자격요건을 첨부 공고문에만 두는 곳이 많아 자동 판정을 하지 않는다.
                     "eng": "확인필요", "major": "언급없음", "fit": "확인필요",
                     "it_fields": ["정보통신 분야"], "edu": "확인필요", "region": "",
-                    "edu_raw": "-", "blocked": [], "cert": False,
+                    "edu_raw": "-", "blocked": [], "cert": False, "kinds": ["IT"],
                 })
         if not jobs:
             note = latest_closed(session)
@@ -564,7 +571,7 @@ def fetch_gojobs(max_pages=12):
                     # 나라일터도 자격요건이 첨부 공고문에만 있어 자동 판정하지 않는다.
                     "eng": "확인필요", "major": "언급없음", "fit": "확인필요",
                     "it_fields": ["공고 제목 기준"], "edu": "확인필요", "region": "",
-                    "edu_raw": "-", "blocked": [], "cert": False,
+                    "edu_raw": "-", "blocked": [], "cert": False, "kinds": ["IT"],
                 })
     except Exception as e:
         print(f"[나라일터] 수집 실패 ({type(e).__name__})")
@@ -612,6 +619,8 @@ def build_html(jobs, sources):
     src_cls = {"알리오": "alio", "지방공기업": "local", "나라일터": "gov"}
     edu_cls = {"무관": "ok", "확인필요": "warn", "석·박사만": "bad"}
     safe = sum(1 for j in jobs if j["cert"])
+    n_it = sum(1 for j in jobs if "IT" in j["kinds"])
+    n_office = sum(1 for j in jobs if "OFFICE" in j["kinds"])
     closing = sum(1 for j in jobs if (deadline_info(j["deadline"])[1] or 99) <= 7)
 
     source_html = "".join(
@@ -635,7 +644,7 @@ def build_html(jobs, sources):
             dday, dcls = f"D-{days}", "urgent" if days <= 3 else ("soon" if days <= 7 else "")
         fields = " · ".join(job["it_fields"]) if job["it_fields"] else "전산 분야 확인 필요"
         rows.append(f"""
-        <tr data-eng="{job['eng']}" data-edu="{job['edu']}">
+        <tr data-eng="{job['eng']}" data-edu="{job['edu']}" data-kind="{' '.join(job['kinds'])}">
           <td data-label="기관">
             <div class="org">{job['org']}</div>
             <span class="src {src_cls.get(job['source'], '')}">{job['source']}</span>
@@ -709,6 +718,13 @@ def build_html(jobs, sources):
   .chip.alio i {{ background: #4f46e5; }} .chip.local i {{ background: #a855f7; }} .chip.gov i {{ background: #10b981; }}
   .chip b {{ font-weight: 700; }}
   .chip em {{ font-style: normal; color: var(--muted); font-size: 11.5px; }}
+  .tabs {{ display: flex; gap: 6px; padding: 12px 14px 0; flex-wrap: wrap; }}
+  .tab {{ border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+         border-radius: 999px; padding: 7px 15px; font-size: 13px; font-weight: 600;
+         cursor: pointer; font-family: inherit; }}
+  .tab b {{ margin-left: 5px; font-weight: 800; }}
+  .tab:hover {{ border-color: var(--brand); color: var(--brand); }}
+  .tab.on {{ background: var(--brand); border-color: var(--brand); color: #fff; }}
   .tools {{ padding: 13px 18px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; }}
   .tools label {{ display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }}
   .tablewrap {{ overflow-x: auto; }}
@@ -779,6 +795,11 @@ def build_html(jobs, sources):
   </div>
 
   <div class="panel">
+    <div class="tabs">
+      <button class="tab on" data-k="ALL">전체 <b>{len(jobs)}</b></button>
+      <button class="tab" data-k="IT">전산 · IT <b>{n_it}</b></button>
+      <button class="tab" data-k="OFFICE">사무 · 행정 <b>{n_office}</b></button>
+    </div>
     <div class="tools">
       <label><input type="checkbox" id="hideEng"> 어학 <b>확인필요</b>도 숨기기</label>
       <label><input type="checkbox" id="hideMajor"> 학력 <b>확인필요</b>도 숨기기</label>
@@ -805,15 +826,27 @@ def build_html(jobs, sources):
 <footer>출처: 알리오 · 클린아이 잡플러스 · 나라일터 · GitHub Actions 자동 수집</footer>
 <script>
   var he = document.getElementById('hideEng'), hm = document.getElementById('hideMajor');
+  var kind = 'ALL';
   function apply() {{
     var shown = 0;
     document.querySelectorAll('#tbody tr[data-eng]').forEach(function (tr) {{
-      var hide = (he.checked && tr.dataset.eng === '확인필요') || (hm.checked && tr.dataset.edu === '확인필요');
+      var kinds = (tr.dataset.kind || '').split(' ');
+      var hide = (kind !== 'ALL' && kinds.indexOf(kind) < 0)
+              || (he.checked && tr.dataset.eng === '확인필요')
+              || (hm.checked && tr.dataset.edu === '확인필요');
       tr.hidden = hide;
       if (!hide) shown++;
     }});
     document.getElementById('count').textContent = shown + '건 표시 중';
   }}
+  document.querySelectorAll('.tab').forEach(function (btn) {{
+    btn.addEventListener('click', function () {{
+      document.querySelectorAll('.tab').forEach(function (b) {{ b.classList.remove('on'); }});
+      btn.classList.add('on');
+      kind = btn.dataset.k;
+      apply();
+    }});
+  }});
   he.addEventListener('change', apply);
   hm.addEventListener('change', apply);
   apply();
