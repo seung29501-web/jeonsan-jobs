@@ -260,16 +260,22 @@ def judge(fields, sections, positions, title, notice=""):
     else:
         eng = "없음"
 
-    if MAJ_REQ.search(qual):
-        major = "제한있음"
-    elif MAJ_NONE.search(basis):
+    # 통합공고는 "전공 제한 없음"과 특정 분야의 전공 요건이 함께 적힌다.
+    # 둘 다 있으면 전공을 안 보는 분야가 존재한다는 뜻이므로 "제한 없음" 쪽을 따른다.
+    if MAJ_NONE.search(basis):
         major = "무관"
+    elif MAJ_REQ.search(qual):
+        major = "제한있음"
     else:
         major = "언급없음"
 
-    if EDU_GRAD_ONLY.search(qual) or edu_field in ("박사", "석사", "석사,박사"):
+    # 학력도 같다. 알리오 학력정보에 학력무관·대졸이 섞여 있으면 대졸이 지원할 분야가 있다.
+    # (예: "학력무관,석사,박사" — 석·박사는 연구직 요건이고 일반직은 학력무관)
+    if EDU_OPEN.search(edu_field):
+        edu = "무관"
+    elif edu_field in ("박사", "석사", "석사,박사") or EDU_GRAD_ONLY.search(qual):
         edu = "석·박사만"
-    elif EDU_OPEN.search(edu_field) or EDU_OPEN.search(qual):
+    elif EDU_OPEN.search(qual):
         edu = "무관"
     else:
         edu = "확인필요"
