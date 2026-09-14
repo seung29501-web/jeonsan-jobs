@@ -1,7 +1,9 @@
+import io
 import re
 import time
 import requests
 from bs4 import BeautifulSoup
+from pypdf import PdfReader
 from datetime import date, datetime, timedelta, timezone
 
 # 알리오가 막혀 재시도가 길어져도 실행 전체가 이 시간을 넘기지 않게 한다.
@@ -66,47 +68,109 @@ HEADERS = {
     "Referer": LIST_URL,
 }
 
-# 모집분야명이 전산 계열인지 판정.
-# 단독 "보안"/"개발"/"시스템"은 안전직·연구직·설비직 오탐이 많아 쓰지 않는다.
+# ── 지원 가능 분야 판정 ────────────────────────────────────────────────────
+# 전산직과 사무·행정 계열 둘 다 지원 대상. 나머지 현장·전문 직종은 제외한다.
 IT_FIELD = re.compile(
     r"(전산|정보통신|정보시스템|정보화|정보처리|정보보안|사이버보안|보안관제"
-    r"|소프트웨어|디지털|빅데이터|데이터|인공지능|네트워크|통신"
+    r"|소프트웨어|디지털|빅데이터|데이터|인공지능|네트워크"
     r"|시스템\s*운영|시스템\s*개발|개발운영|정보기술"
     # 한글·밑줄 옆에 붙은 약어는 \b 경계가 잡히지 않아(예: "_SW정책연구") 영문자 기준으로 판정한다.
     r"|(?<![A-Za-z])(?:IT|ICT|SW|AI|DX)(?![A-Za-z]))",
     re.I,
 )
+OFFICE_FIELD = re.compile(r"(사무|행정|경영|일반직|총무|기획|경영지원|고객지원|사무행정)")
 
-# 위 키워드가 걸려도 실제로는 전산직이 아닌 분야명. (예: "전기기계통신기사_기계")
-# "무기계약직" 안의 "기계"에 걸리지 않도록 앞에 "무"가 오는 경우는 뺀다.
-IT_FIELD_NOT = re.compile(r"((?<!무)기계|토목|건축|화공|간호|의무|약무|조리|미화|경비|운전|청원경찰)")
-
-# 전산 분야라도 계약직·대체인력은 제외한다. 단 무기계약직은 정년이 보장되므로 남긴다.
-FIELD_TEMPORARY = re.compile(r"((?<!무기)계약직|기간제|인턴|육아휴직|대체인력|단시간)")
-
-# 제목만으로 전산과 무관함이 분명한 공고는 상세페이지를 열지 않고 건너뛴다.
-SKIP_TITLE = re.compile(
-    r"(간호사|간호직|간호조무|조리원|조리사|환경미화|미화원|경비원|운전원|전문의|의무직"
-    r"|약사|임상병리|방사선사|물리치료|작업치료|사회복지사|청원경찰|장례|주차관리|치과위생)"
+# 위 키워드가 걸려도 대졸 비전공자가 지원할 수 없는 현장·전문 직종.
+FIELD_NOT = re.compile(
+    r"((?<!무)기계|토목|건축|화공|전기|설비|시설|산림|조경|환경|안전|방호"
+    r"|간호|의무|약무|보건|의료|임상|방사선|물리치료|조리|미화|경비|운전|청원경찰"
+    r"|사서|상담|사회복지|교원|교수|연구위원|박사)"
 )
 
-# --- 응시자격 판정 규칙 ---
-ENG_NONE = re.compile(r"(어학|영어|외국어)[^\n]{0,20}(제한\s*없|무관|불필요)")
+# 전산·사무 분야라도 계약직·대체인력은 제외한다. 단 무기계약직은 정년이 보장되므로 남긴다.
+FIELD_TEMPORARY = re.compile(r"((?<!무기)계약직|기간제|인턴|육아휴직|대체인력|단시간|시간선택)")
+
+# 제목만으로 지원 대상이 아님이 분명한 공고는 상세페이지를 열지 않고 건너뛴다.
+SKIP_TITLE = re.compile(
+    r"(간호사|간호직|간호조무|조리원|조리사|환경미화|미화원|경비원|운전원|전문의|의무직"
+    r"|약사|임상병리|방사선사|물리치료|작업치료|사회복지사|청원경찰|장례|주차관리|치과위생"
+    r"|의사|한의사|수의사|영양사|보육교사|사서직|교원|교수|초빙)"
+)
+
+# ── 응시자격 판정 ──────────────────────────────────────────────────────────
 ENG_REQ = re.compile(
-    r"(공인\s*어학성적|유효한?\s*어학성적|어학성적\s*기준|어학성적\s*보유자"
+    r"(공인\s*어학성적|유효한?\s*어학성적|어학성적\s*기준|어학성적\s*보유자|영어능력평가"
     r"|(?:TOEIC|TOEFL|TEPS|OPIc|토익|토플|텝스|오픽)[^\n]{0,15}\d{2,4}\s*점?\s*이상"
     r"|(?:TOEIC|TOEFL|TEPS)\s*\d{3}"
     r"|(?:어학|영어)[^\n]{0,25}\d{3}\s*점\s*이상)",
     re.I,
 )
-ENG_EVAL = re.compile(r"어학[^\n]{0,25}(환산|배점|계량|가점|반영)")
+ENG_EVAL = re.compile(r"어학[^\n]{0,25}(환산|배점|계량|가점|반영|평가)")
+ENG_NONE = re.compile(r"(어학|영어|외국어)[^\n]{0,20}(제한\s*없|무관|불필요)")
 ENG_ANY = re.compile(r"어학|토익|TOEIC|TEPS|OPIc", re.I)
+
+# 대졸자가 지원할 수 없는 학력 요건
+EDU_OPEN = re.compile(r"(학력\s*무관|학력\s*제한\s*없|고졸|대졸|초대졸|전문대|학사)")
+EDU_GRAD_ONLY = re.compile(r"(박사학위\s*(?:이상\s*)?(?:소지|취득|보유)|박사\s*이상"
+                           r"|석사학위\s*(?:이상\s*)?(?:소지|취득|보유)|석사\s*이상)")
 
 MAJ_NONE = re.compile(r"전공[^\n]{0,20}(제한\s*없|무관|별도\s*제한\s*없)")
 MAJ_REQ = re.compile(
     r"((?:해당|관련)\s*(?:분야\s*)?전공자|전공\s*분야\s*해당자"
     r"|전공자에?\s*한(?:함|하여)|(?:컴퓨터공학|전산학|소프트웨어)\s*(?:등\s*)?(?:관련\s*)?전공)"
 )
+
+# 특정 지역 출신 우대·제한 조항 (대전 거주자 기준 유불리가 갈려 표시만 한다)
+REGION_TALENT = re.compile(
+    r"((?:비수도권|수도권|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원"
+    r"|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)[^\n]{0,8}?)\s*지역\s*인재"
+)
+
+# ── 모집분야별 지원 가능 여부 ──────────────────────────────────────────────
+# 통합채용은 공고 전체가 "학력무관"이어도 분야마다 자격이 다르다.
+# 분야명에 붙은 직급(4급, 5급가, 공무직 …)을 응시자격 본문에서 찾아 그 분야 조건만 본다.
+GRADE_TOKEN = re.compile(r"(\d+급(?:가|나|다)?|공무직|무기계약직|일반직|전문직)")
+CAREER_REQ = re.compile(r"(\d+\s*년\s*이상[^\n]{0,25}(?:경력|경험)"
+                        r"|경력이\s*있는\s*자|경력자로서|경력\s*\d+\s*년\s*이상"
+                        r"|실무\s*경력\s*\d+\s*년|관련\s*경력\s*\d+\s*년)")
+PHD_ROLE = re.compile(r"(부연구위원|연구위원|전임연구원|책임연구원|교원|교수|초빙|석좌|박사급|수석연구)")
+
+# 지원자가 보유한 자격증. 우대사항·지원자격에 있으면 목록 위로 올린다.
+CERT_BONUS = re.compile(r"(정보처리\s*기사|빅데이터\s*분석\s*기사|정보처리기사|빅데이터분석기사)")
+
+
+# 특정 자격을 갖춘 사람만 지원할 수 있는 제한경쟁 분야. 일반 대졸 지원자는 낼 수 없다.
+RESTRICTED_FIELD = re.compile(
+    r"(장애인|보훈|국가유공|취업지원|제대군인"
+    r"|고졸|특성화고|마이스터|학교장\s*추천"
+    r"|경력단절|북한이탈|새터민|다문화|외국인\s*전형)"
+)
+
+
+def eligible_field(name):
+    """모집분야명이 지원 대상(전산 또는 사무·행정)인지."""
+    if FIELD_NOT.search(name) or FIELD_TEMPORARY.search(name):
+        return False
+    if RESTRICTED_FIELD.search(name):
+        return False
+    return bool(IT_FIELD.search(name) or OFFICE_FIELD.search(name))
+
+
+def field_blocker(name, qual):
+    """모집분야 하나가 신입·대졸 지원자에게 막혀 있으면 그 사유를 돌려준다."""
+    if PHD_ROLE.search(name):
+        return "박사급 직위"
+    grades = set(GRADE_TOKEN.findall(name))
+    for line in qual.split("\n"):
+        if grades and not any(g in line for g in grades):
+            continue
+        if not grades:
+            continue
+        if CAREER_REQ.search(line):
+            return "경력 필요"
+        if EDU_GRAD_ONLY.search(line):
+            return "석·박사만"
+    return ""
 
 
 def clean(text):
@@ -174,41 +238,69 @@ def parse_detail(html):
     return fields, sections, positions
 
 
-def judge(fields, sections, positions, title):
-    """응시자격 본문과 모집분야 목록을 근거로 요건을 판정한다."""
-    qual = sections.get("응시자격", "") or "\n".join(sections.values())
-    basis = f"{qual}\n{fields.get('학력정보', '')}"
+def judge(fields, sections, positions, title, notice=""):
+    """공고 하나를 판정해 결과를 dict로 돌려준다.
 
-    if ENG_NONE.search(basis):
-        eng = "없음"
-    elif ENG_REQ.search(basis):
+    통합채용은 공고 전체가 "학력·전공 제한 없음"이어도 분야마다 조건이 달라서,
+    지원 가능한 분야 각각에 대해 경력·학위 요건을 따로 확인한다.
+    상세페이지 요약에 없고 첨부 공고문에만 적힌 어학 기준도 있어 PDF 본문까지 합쳐 본다.
+    """
+    qual = sections.get("응시자격", "") or "\n".join(sections.values())
+    edu_field = fields.get("학력정보", "")
+    basis = "\n".join([qual, edu_field, notice])
+
+    if ENG_REQ.search(basis):
         eng = "필수"
     elif ENG_EVAL.search(basis):
         eng = "평가반영"
+    elif ENG_NONE.search(basis):
+        eng = "없음"
     elif ENG_ANY.search(basis):
         eng = "확인필요"
     else:
         eng = "없음"
 
-    if MAJ_NONE.search(basis):
-        major = "무관"
-    elif MAJ_REQ.search(basis):
+    if MAJ_REQ.search(qual):
         major = "제한있음"
+    elif MAJ_NONE.search(basis):
+        major = "무관"
     else:
         major = "언급없음"
 
-    it_fields = [p for p in positions
-                 if IT_FIELD.search(p)
-                 and not IT_FIELD_NOT.search(p)
-                 and not FIELD_TEMPORARY.search(p)]
-    if it_fields:
-        it = "있음"
-    elif positions:
-        it = "없음"  # 모집분야가 공개돼 있는데 전산 계열이 하나도 없음
+    if EDU_GRAD_ONLY.search(qual) or edu_field in ("박사", "석사", "석사,박사"):
+        edu = "석·박사만"
+    elif EDU_OPEN.search(edu_field) or EDU_OPEN.search(qual):
+        edu = "무관"
     else:
-        it = "확인필요"
+        edu = "확인필요"
 
-    return eng, major, it, it_fields
+    candidates = [x for x in positions if eligible_field(x)]
+    open_fields, blocked = [], []
+    for name in candidates:
+        why = field_blocker(name, qual)
+        if why:
+            blocked.append(f"{name[:26]} → {why}")
+        else:
+            open_fields.append(name)
+
+    if open_fields:
+        fit = "있음"
+    elif candidates:
+        fit = "막힘"      # 지원 가능 분야는 있으나 경력·학위 요건에 걸림
+    elif positions:
+        fit = "없음"      # 모집분야가 공개돼 있는데 전산·사무 계열이 하나도 없음
+    else:
+        fit = "확인필요"
+
+    regions = sorted({clean(m.group(1)) for m in REGION_TALENT.finditer(basis)})
+    return {
+        "eng": eng, "major": major, "edu": edu, "fit": fit,
+        "it_fields": open_fields, "blocked": blocked,
+        "region": ", ".join(r + " 지역인재" for r in regions[:2]),
+        "cert": bool(CERT_BONUS.search(basis)),
+        "edu_raw": edu_field or "-",
+    }
+
 
 
 def fetch_list(session, max_pages=10):
@@ -270,30 +362,83 @@ def fetch_list(session, max_pages=10):
     return items
 
 
+def notice_text(session, html, max_pages=30):
+    """첨부된 채용 공고문 PDF를 받아 본문 텍스트를 뽑는다.
+
+    알리오 상세페이지의 응시자격은 요약이라 "학력·전공 제한 없음"만 적어두고
+    실제 어학 기준·지역인재 조항은 공고문 PDF에만 있는 경우가 많다.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    target = None
+    for a in soup.select("a[href*='download.json']"):
+        name = a.get_text(strip=True)
+        if not name.lower().endswith(".pdf"):
+            continue
+        if "공고" in name:
+            target = a["href"]
+            break
+        target = target or a["href"]
+    if not target:
+        return ""
+
+    try:
+        resp = session.get(target, timeout=60)
+        if not resp.content.startswith(b"%PDF"):
+            return ""
+        reader = PdfReader(io.BytesIO(resp.content))
+        pages = (page.extract_text() or "" for page in reader.pages[:max_pages])
+        return re.sub(r"[ \t]+", " ", "\n".join(pages))
+    except Exception as e:
+        print(f"    공고문 PDF 읽기 실패: {type(e).__name__}")
+        return ""
+
+
 def enrich(session, jobs):
-    kept, dropped = [], []
+    kept, skipped = [], {}
+
+    def drop(reason, job=None):
+        skipped[reason] = skipped.get(reason, 0) + 1
+        if job:
+            print(f"  {job['org'][:16]:<17} 제외 — {reason}")
+
     for job in jobs:
         try:
             resp = request(session, job["link"], tries=2)
             fields, sections, positions = parse_detail(resp.text)
-            eng, major, it, it_fields = judge(fields, sections, positions, job["title"])
-            job.update(eng=eng, major=major, it=it, it_fields=it_fields,
-                       edu=fields.get("학력정보", "-"))
+
+            # 지원 가능 분야가 아예 없는 공고까지 PDF를 받으면 느려서, 먼저 분야만 훑고 거른다.
+            if judge(fields, sections, positions, job["title"])["fit"] == "없음":
+                drop("전산·사무 분야 없음")
+                continue
+
+            job.update(judge(fields, sections, positions, job["title"],
+                             notice_text(session, resp.text)))
         except Exception as e:
             print(f"  상세 조회 실패 ({job['org']}): {e}")
-            job.update(eng="확인필요", major="언급없음", it="확인필요", it_fields=[], edu="-")
+            job.update(eng="확인필요", major="언급없음", edu="확인필요", fit="확인필요",
+                       it_fields=[], blocked=[], region="", cert=False, edu_raw="-")
 
-        if job["it"] == "없음":
-            dropped.append(job)
-            continue
-
-        kept.append(job)
-        tag = ", ".join(job["it_fields"])[:40] or "확인필요"
-        print(f"  {job['org'][:16]:<17} 어학={job['eng']:<5} 전공={job['major']:<5} 분야={tag}")
+        # 요청한 조건에 어긋나는 공고는 목록에서 뺀다.
+        if job["fit"] == "막힘":
+            drop("경력·학위 요건", job)
+        elif job["edu"] == "석·박사만":
+            drop("석·박사만 지원 가능", job)
+        elif job["major"] == "제한있음":
+            drop("전공 제한 있음", job)
+        elif job["eng"] in ("필수", "평가반영"):
+            drop(f"어학 {job['eng']}", job)
+        else:
+            kept.append(job)
+            mark = "★" if job["cert"] else " "
+            tag = ", ".join(job["it_fields"])[:34] or "확인필요"
+            extra = f" 지역={job['region']}" if job["region"] else ""
+            print(f" {mark}{job['org'][:16]:<17} 학력={job['edu']:<5} 전공={job['major']:<5} "
+                  f"분야={tag}{extra}")
         time.sleep(0.4)
 
-    print(f"전산 분야 없어서 제외: {len(dropped)}건")
+    print("제외: " + ", ".join(f"{k} {v}건" for k, v in sorted(skipped.items())))
     return kept
+
 
 
 def fetch_cleaneye():
@@ -329,8 +474,9 @@ def fetch_cleaneye():
                              f"&ypEntId={row.get('ypEntId')}&entSeq={row.get('entSeq')}"),
                     "source": "지방공기업",
                     # 클린아이는 상세 자격요건을 첨부 공고문에만 두는 곳이 많아 자동 판정을 하지 않는다.
-                    "eng": "확인필요", "major": "언급없음", "it": "있음",
-                    "it_fields": ["정보통신 분야"], "edu": "-",
+                    "eng": "확인필요", "major": "언급없음", "fit": "확인필요",
+                    "it_fields": ["정보통신 분야"], "edu": "확인필요", "region": "",
+                    "edu_raw": "-", "blocked": [], "cert": False,
                 })
         if not jobs:
             note = latest_closed(session)
@@ -410,8 +556,9 @@ def fetch_gojobs(max_pages=12):
                     "link": f"{GJ_VIEW}?menuNo=401&flag=U&searchJobsecode={args[0]}&empmnsn={args[1]}",
                     "source": "나라일터",
                     # 나라일터도 자격요건이 첨부 공고문에만 있어 자동 판정하지 않는다.
-                    "eng": "확인필요", "major": "언급없음", "it": "있음",
-                    "it_fields": ["공고 제목 기준"], "edu": "-",
+                    "eng": "확인필요", "major": "언급없음", "fit": "확인필요",
+                    "it_fields": ["공고 제목 기준"], "edu": "확인필요", "region": "",
+                    "edu_raw": "-", "blocked": [], "cert": False,
                 })
     except Exception as e:
         print(f"[나라일터] 수집 실패 ({type(e).__name__})")
@@ -430,9 +577,10 @@ def fetch_jobs():
         ("나라일터", "공무원", len(gov), ""),
     ]
 
-    penalty = {"없음": 0, "언급없음": 0, "무관": 0, "있음": 0,
-               "평가반영": 2, "확인필요": 3, "제한있음": 3, "필수": 5}
-    jobs.sort(key=lambda j: (penalty[j["eng"]] + penalty[j["major"]] + penalty[j["it"]], j["deadline"]))
+    # 보유 자격증이 우대사항에 있는 공고를 맨 위로, 그다음 마감이 임박한 순서로.
+    jobs.sort(key=lambda j: (not j["cert"], deadline_info(j["deadline"])[1] if
+                             deadline_info(j["deadline"])[1] is not None else 999))
+
     return jobs, sources
 
 
@@ -456,7 +604,8 @@ def build_html(jobs, sources):
     eng_cls = {"없음": "ok", "평가반영": "warn", "확인필요": "warn", "필수": "bad"}
     maj_cls = {"무관": "ok", "언급없음": "ok", "제한있음": "bad"}
     src_cls = {"알리오": "alio", "지방공기업": "local", "나라일터": "gov"}
-    safe = sum(1 for j in jobs if j["eng"] == "없음" and j["major"] != "제한있음")
+    edu_cls = {"무관": "ok", "확인필요": "warn", "석·박사만": "bad"}
+    safe = sum(1 for j in jobs if j["cert"])
     closing = sum(1 for j in jobs if (deadline_info(j["deadline"])[1] or 99) <= 7)
 
     source_html = "".join(
@@ -480,26 +629,31 @@ def build_html(jobs, sources):
             dday, dcls = f"D-{days}", "urgent" if days <= 3 else ("soon" if days <= 7 else "")
         fields = " · ".join(job["it_fields"]) if job["it_fields"] else "전산 분야 확인 필요"
         rows.append(f"""
-        <tr data-eng="{job['eng']}" data-major="{job['major']}">
+        <tr data-eng="{job['eng']}" data-edu="{job['edu']}">
           <td data-label="기관">
             <div class="org">{job['org']}</div>
             <span class="src {src_cls.get(job['source'], '')}">{job['source']}</span>
           </td>
           <td data-label="공고">
             <a href="{job['link']}" target="_blank" rel="noopener">{job['title']}</a>
+            {'<span class="cert">정보처리·빅데이터 우대</span>' if job['cert'] else ''}
             <div class="fields">{fields}</div>
           </td>
           <td data-label="지역">{job['location']}</td>
           <td data-label="어학"><span class="pill {eng_cls[job['eng']]}">{job['eng']}</span></td>
           <td data-label="전공"><span class="pill {maj_cls[job['major']]}">{job['major']}</span></td>
+          <td data-label="학력">
+            <span class="pill {edu_cls.get(job['edu'], 'warn')}">{job['edu']}</span>
+            {f'<div class="region">{job["region"]}</div>' if job["region"] else ''}
+          </td>
           <td data-label="마감">
             <div class="due">{due_text}</div>
             <span class="dday {dcls}">{dday}</span>
-            <div class="meta">{job['job_type']} · {job['edu']}</div>
+            <div class="meta">{job['job_type']}</div>
           </td>
         </tr>""")
 
-    rows_html = "".join(rows) or '<tr><td colspan="6" class="empty">조건에 맞는 진행중인 공고가 없습니다.</td></tr>'
+    rows_html = "".join(rows) or '<tr><td colspan="7" class="empty">조건에 맞는 진행중인 공고가 없습니다.</td></tr>'
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -571,6 +725,9 @@ def build_html(jobs, sources):
   .pill.ok {{ background: var(--ok-bg); color: var(--ok-fg); }}
   .pill.warn {{ background: var(--warn-bg); color: var(--warn-fg); }}
   .pill.bad {{ background: var(--bad-bg); color: var(--bad-fg); }}
+  .cert {{ display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+          font-size: 10.5px; font-weight: 800; background: var(--ok-bg); color: var(--ok-fg); }}
+  .region {{ margin-top: 5px; font-size: 10.5px; color: var(--warn-fg); font-weight: 700; }}
   .due {{ font-weight: 600; white-space: nowrap; }}
   .dday {{ display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 6px;
           font-size: 11.5px; font-weight: 800; background: var(--bg); color: var(--muted); }}
@@ -598,13 +755,13 @@ def build_html(jobs, sources):
 <header>
   <div class="head-in">
     <h1>공공기관 전산직 채용공고</h1>
-    <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외 — 알리오 필터만 믿지 않고
-       공고 본문의 <b>모집분야와 응시자격까지 읽어서</b> 걸러냈어. 하루 4번 자동 갱신.</p>
+    <p>전공무관 · 대졸/학력무관 · 어학 안 봄 · 신입 · 정규직/무기계약직 · 제주 제외<br>
+       공고 본문과 <b>첨부 공고문 PDF까지 읽어서</b> 조건에 맞는 것만 남겼어. 하루 4번 자동 갱신.</p>
   </div>
 </header>
 <div class="wrap">
   <div class="stats">
-    <div class="stat"><div class="n good">{safe}</div><div class="l">토익·전공 조건 없음</div></div>
+    <div class="stat"><div class="n good">{safe}</div><div class="l">내 자격증 우대</div></div>
     <div class="stat"><div class="n hot">{closing}</div><div class="l">일주일 내 마감</div></div>
     <div class="stat"><div class="n">{len(jobs)}</div><div class="l">전체 공고</div></div>
     <div class="stat"><div class="n sm">{now.strftime("%m월 %d일 %H:%M")}</div><div class="l">마지막 업데이트</div></div>
@@ -617,14 +774,14 @@ def build_html(jobs, sources):
 
   <div class="panel">
     <div class="tools">
-      <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b> 숨기기</label>
-      <label><input type="checkbox" id="hideMajor" checked> 전공 <b>제한있음</b> 숨기기</label>
+      <label><input type="checkbox" id="hideEng"> 어학 <b>확인필요</b>도 숨기기</label>
+      <label><input type="checkbox" id="hideMajor"> 학력 <b>확인필요</b>도 숨기기</label>
       <span id="count" style="color:var(--muted)"></span>
     </div>
     <div class="tablewrap">
       <table>
         <thead><tr>
-          <th>기관</th><th>공고 / 전산 모집분야</th><th>지역</th><th>어학</th><th>전공</th><th>마감</th>
+          <th>기관</th><th>공고 / 전산 모집분야</th><th>지역</th><th>어학</th><th>전공</th><th>학력</th><th>마감</th>
         </tr></thead>
         <tbody id="tbody">{rows_html}</tbody>
       </table>
@@ -634,7 +791,8 @@ def build_html(jobs, sources):
   <p class="note">
     제목 아래 <b style="color:#16a34a">초록색 글씨</b>가 그 공고에서 실제로 뽑는 전산 계열 모집분야야. 전산 분야가 없는 공고는 목록에서 뺐어.<br>
     <b>어학 / 전공</b>은 공고의 <b>응시자격</b> 항목만 읽어 판정했어. <b>평가반영</b>은 지원자격은 아니지만 서류 점수에 반영되는 경우,
-    <b>확인필요</b>는 자격요건이 첨부 공고문에만 있어 직접 봐야 하는 경우야 (지방공기업·나라일터가 대부분 여기 해당).<br>
+    <b>확인필요</b>는 자동 판정이 어려워 직접 봐야 하는 경우야 (지방공기업·나라일터가 대부분 여기 해당).<br>
+    알리오 공고는 <b>첨부된 채용 공고문 PDF까지 내려받아</b> 어학 기준·학위 요건·지역인재 조항을 찾아봤어. 석사·박사만 지원할 수 있는 공고는 아예 목록에서 뺐고, 특정 지역 출신을 우대하는 조항이 있으면 학력 칸 아래에 표시했어.<br>
     통합채용은 분야마다 조건이 달라 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.
   </p>
 </div>
@@ -644,7 +802,7 @@ def build_html(jobs, sources):
   function apply() {{
     var shown = 0;
     document.querySelectorAll('#tbody tr[data-eng]').forEach(function (tr) {{
-      var hide = (he.checked && tr.dataset.eng === '필수') || (hm.checked && tr.dataset.major === '제한있음');
+      var hide = (he.checked && tr.dataset.eng === '확인필요') || (hm.checked && tr.dataset.edu === '확인필요');
       tr.hidden = hide;
       if (!hide) shown++;
     }});

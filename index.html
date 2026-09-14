@@ -68,6 +68,9 @@
   .pill.ok { background: var(--ok-bg); color: var(--ok-fg); }
   .pill.warn { background: var(--warn-bg); color: var(--warn-fg); }
   .pill.bad { background: var(--bad-bg); color: var(--bad-fg); }
+  .cert { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+          font-size: 10.5px; font-weight: 800; background: var(--ok-bg); color: var(--ok-fg); }
+  .region { margin-top: 5px; font-size: 10.5px; color: var(--warn-fg); font-weight: 700; }
   .due { font-weight: 600; white-space: nowrap; }
   .dday { display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 6px;
           font-size: 11.5px; font-weight: 800; background: var(--bg); color: var(--muted); }
@@ -95,411 +98,378 @@
 <header>
   <div class="head-in">
     <h1>공공기관 전산직 채용공고</h1>
-    <p>정규직·무기계약직 · 신입 · 진행중 · 제주 제외 — 알리오 필터만 믿지 않고
-       공고 본문의 <b>모집분야와 응시자격까지 읽어서</b> 걸러냈어. 하루 4번 자동 갱신.</p>
+    <p>전공무관 · 대졸/학력무관 · 어학 안 봄 · 신입 · 정규직/무기계약직 · 제주 제외<br>
+       공고 본문과 <b>첨부 공고문 PDF까지 읽어서</b> 조건에 맞는 것만 남겼어. 하루 4번 자동 갱신.</p>
   </div>
 </header>
 <div class="wrap">
   <div class="stats">
-    <div class="stat"><div class="n good">13</div><div class="l">토익·전공 조건 없음</div></div>
-    <div class="stat"><div class="n hot">14</div><div class="l">일주일 내 마감</div></div>
-    <div class="stat"><div class="n">21</div><div class="l">전체 공고</div></div>
-    <div class="stat"><div class="n sm">09월 14일 11:07</div><div class="l">마지막 업데이트</div></div>
+    <div class="stat"><div class="n good">2</div><div class="l">내 자격증 우대</div></div>
+    <div class="stat"><div class="n hot">6</div><div class="l">일주일 내 마감</div></div>
+    <div class="stat"><div class="n">15</div><div class="l">전체 공고</div></div>
+    <div class="stat"><div class="n sm">09월 14일 19:13</div><div class="l">마지막 업데이트</div></div>
   </div>
 
   <div class="panel">
     <div class="panel-h">수집 현황</div>
-    <div class="chips"><span class="chip alio"><i></i>알리오 <b>19</b></span><span class="chip local"><i></i>지방공기업 <b>0</b><em>가장 최근 공고는 2026-08-10 마감 (인천스마트시티(주))</em></span><span class="chip gov"><i></i>나라일터 <b>2</b></span></div>
+    <div class="chips"><span class="chip alio"><i></i>알리오 <b>13</b></span><span class="chip local"><i></i>지방공기업 <b>0</b><em>수집 실패</em></span><span class="chip gov"><i></i>나라일터 <b>2</b></span></div>
   </div>
 
   <div class="panel">
     <div class="tools">
-      <label><input type="checkbox" id="hideEng" checked> 어학성적 <b>필수</b> 숨기기</label>
-      <label><input type="checkbox" id="hideMajor" checked> 전공 <b>제한있음</b> 숨기기</label>
+      <label><input type="checkbox" id="hideEng"> 어학 <b>확인필요</b>도 숨기기</label>
+      <label><input type="checkbox" id="hideMajor"> 학력 <b>확인필요</b>도 숨기기</label>
       <span id="count" style="color:var(--muted)"></span>
     </div>
     <div class="tablewrap">
       <table>
         <thead><tr>
-          <th>기관</th><th>공고 / 전산 모집분야</th><th>지역</th><th>어학</th><th>전공</th><th>마감</th>
+          <th>기관</th><th>공고 / 전산 모집분야</th><th>지역</th><th>어학</th><th>전공</th><th>학력</th><th>마감</th>
         </tr></thead>
         <tbody id="tbody">
-        <tr data-eng="없음" data-major="무관">
+        <tr data-eng="없음" data-edu="무관">
           <td data-label="기관">
-            <div class="org">한국지능정보사회진흥원</div>
+            <div class="org">한국국토정보공사</div>
             <span class="src alio">알리오</span>
           </td>
           <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304405" target="_blank" rel="noopener">2026년 한국지능정보사회진흥원 하반기 정규직 및 무기계약직(일반직) 채용공고</a>
-            <div class="fields">Ⅰ-④정책·디지털포용</div>
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304786" target="_blank" rel="noopener">2026년 한국국토정보공사 장애인 맞춤훈련 채용(사무지원) 공고</a>
+            <span class="cert">정보처리·빅데이터 우대</span>
+            <div class="fields">업무직(사무지원)</div>
           </td>
-          <td data-label="지역">대구 외 1</td>
+          <td data-label="지역">전북</td>
           <td data-label="어학"><span class="pill ok">없음</span></td>
           <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.14</div>
-            <span class="dday urgent">오늘 마감</span>
-            <div class="meta">무기계약직 외 1 · 학력무관</div>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
           </td>
-        </tr>
-        <tr data-eng="없음" data-major="무관">
-          <td data-label="기관">
-            <div class="org">신용보증기금</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304432" target="_blank" rel="noopener">2026년도 하반기 신용보증기금 신입직원 채용</a>
-            <div class="fields">[정규직 5급] 인공지능 · [정규직 5급] ICT · [정규직 6급] 고교 정보통신</div>
-          </td>
-          <td data-label="지역">서울 외 15</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.16</div>
-            <span class="dday urgent">D-2</span>
-            <div class="meta">정규직 · 학력무관</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">소프트웨어정책연구소</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304451" target="_blank" rel="noopener">소프트웨어정책연구소 정규직(연구직) 및 무기계약직(연구직) 채용</a>
-            <div class="fields">정규직(연구직)_SW(소프트웨어)정책연구 · 무기계약직(연구직)_SW(소프트웨어)정책연구</div>
-          </td>
-          <td data-label="지역">경기</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.16</div>
-            <span class="dday urgent">D-2</span>
-            <div class="meta">무기계약직 외 1 · 박사</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">정보통신정책연구원</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304456" target="_blank" rel="noopener">정보통신정책연구원 정규직 직원(연구책임자) 채용 재공고</a>
-            <div class="fields">부연구위원(연구책임자) AI·정보보호·사이버보안 관련 정책 및 제도 연구</div>
-          </td>
-          <td data-label="지역">충북</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.16</div>
-            <span class="dday urgent">D-2</span>
-            <div class="meta">정규직 · 박사</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국학중앙연구원</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304540" target="_blank" rel="noopener">교원 초빙 공고</a>
-            <div class="fields">인공지능 시대의 디지털 한국학(AI 한국학)</div>
-          </td>
-          <td data-label="지역">경기</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.17</div>
-            <span class="dday urgent">D-3</span>
-            <div class="meta">정규직 · 박사</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국학중앙연구원</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304545" target="_blank" rel="noopener">기능직(통신) 채용 공고</a>
-            <div class="fields">기능직(통신)</div>
-          </td>
-          <td data-label="지역">경기</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.17</div>
-            <span class="dday urgent">D-3</span>
-            <div class="meta">정규직 · 학력무관</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국수목원정원관리원</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304713" target="_blank" rel="noopener">한국수목원정원관리원 2026년 제3차 신규직원 채용 공고</a>
-            <div class="fields">(4급) AI·디지털 · (공무직) 정보화기술지원</div>
-          </td>
-          <td data-label="지역">강원 외 3</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.21</div>
-            <span class="dday soon">D-7</span>
-            <div class="meta">무기계약직 외 1 · 학력무관,고졸,석사</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="무관">
-          <td data-label="기관">
-            <div class="org">중소기업은행</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304557" target="_blank" rel="noopener">2026년 하반기 IBK기업은행 일반직원(정규직) 수시채용 공고</a>
-            <div class="fields">IT 사업관리·컨설팅</div>
-          </td>
-          <td data-label="지역">서울 외 16</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.21</div>
-            <span class="dday soon">D-7</span>
-            <div class="meta">정규직 · 학력무관,대졸(4년),석사,박사</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="무관">
-          <td data-label="기관">
-            <div class="org">한국고용정보원</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304653" target="_blank" rel="noopener">2026년도 한국고용정보원 2차 직원 채용 공고</a>
-            <div class="fields">일반직5급-정보화(일반) · 일반직5급-정보화(지역인재) · 무기계약직-정보화(전문원)</div>
-          </td>
-          <td data-label="지역">인천 외 1</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.22</div>
-            <span class="dday ">D-8</span>
-            <div class="meta">무기계약직 외 1 · 학력무관,석사,박사</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국전력기술주식회사</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304717" target="_blank" rel="noopener">2026년도 하반기 정규직(신입사원) 채용공고</a>
-            <div class="fields">전산(대졸수준)</div>
-          </td>
-          <td data-label="지역">경북</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.22</div>
-            <span class="dday ">D-8</span>
-            <div class="meta">정규직 · 학력무관,고졸</div>
-          </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">국가생명윤리정책원</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304793" target="_blank" rel="noopener">제2026-3차 직원 채용 공고</a>
-            <div class="fields">전산직(정규직) 5급(A09)</div>
-          </td>
-          <td data-label="지역">서울</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
           <td data-label="마감">
             <div class="due">2026.09.23</div>
             <span class="dday ">D-9</span>
-            <div class="meta">비정규직 외 1 · 학력무관,중졸이하,고졸,대졸(2~3년),대졸(4년),석사,박사</div>
+            <div class="meta">무기계약직</div>
           </td>
         </tr>
-        <tr data-eng="없음" data-major="무관">
+        <tr data-eng="확인필요" data-edu="무관">
           <td data-label="기관">
-            <div class="org">(재)한국우편사업진흥원</div>
+            <div class="org">한국콘텐츠진흥원</div>
             <span class="src alio">알리오</span>
           </td>
           <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304896" target="_blank" rel="noopener">한국우편사업진흥원 2026년 신입직원(일반직, 전문직(사무), 전문직(특수)) 채용</a>
-            <div class="fields">전문직(사무)_경영정보시스템 개발 및 유지보수</div>
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304527" target="_blank" rel="noopener">2026년 4분기 한국콘텐츠진흥원 신입직원 채용 공고</a>
+            <span class="cert">정보처리·빅데이터 우대</span>
+            <div class="fields">사업관리 및 일반행정</div>
           </td>
-          <td data-label="지역">서울 외 1</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="지역">전남광주</td>
+          <td data-label="어학"><span class="pill warn">확인필요</span></td>
           <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.25</div>
-            <span class="dday ">D-11</span>
-            <div class="meta">무기계약직 외 1 · 학력무관</div>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
           </td>
-        </tr>
-        <tr data-eng="없음" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국남부발전(주)</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304839" target="_blank" rel="noopener">한국남부발전(주) 2026년 하반기 신입사원 및 별정직 채용공고</a>
-            <div class="fields">신입사원(대졸수준-보훈(ICT))</div>
-          </td>
-          <td data-label="지역">인천 외 6</td>
-          <td data-label="어학"><span class="pill ok">없음</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
           <td data-label="마감">
             <div class="due">2026.09.28</div>
             <span class="dday ">D-14</span>
-            <div class="meta">정규직 · 학력무관,고졸</div>
+            <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="확인필요" data-major="언급없음">
+        <tr data-eng="확인필요" data-edu="확인필요">
           <td data-label="기관">
             <div class="org">경북대학교 정보화본부</div>
             <span class="src gov">나라일터</span>
           </td>
           <td data-label="공고">
             <a href="https://www.gojobs.go.kr/apmView_recruit.do?menuNo=401&flag=U&searchJobsecode=020&empmnsn=302818" target="_blank" rel="noopener">2026년도 제3회 경북대학교 정보화본부 대학회계 무기계약직원(전산직) 공개 채용 공고</a>
+            
             <div class="fields">공고 제목 기준</div>
           </td>
           <td data-label="지역">-</td>
           <td data-label="어학"><span class="pill warn">확인필요</span></td>
           <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill warn">확인필요</span>
+            
+          </td>
           <td data-label="마감">
             <div class="due">2026.09.16</div>
             <span class="dday urgent">D-2</span>
-            <div class="meta">공무원 · -</div>
+            <div class="meta">공무원</div>
           </td>
         </tr>
-        <tr data-eng="확인필요" data-major="언급없음">
+        <tr data-eng="없음" data-edu="무관">
           <td data-label="기관">
-            <div class="org">국회 국회사무처</div>
-            <span class="src gov">나라일터</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://www.gojobs.go.kr/apmView_recruit.do?menuNo=401&flag=U&searchJobsecode=020&empmnsn=303399" target="_blank" rel="noopener">2026년도 국회사무처 정보기술직 9급(정보기술서기보) 경력경쟁채용시험 공고(구. 전산직9급)</a>
-            <div class="fields">공고 제목 기준</div>
-          </td>
-          <td data-label="지역">-</td>
-          <td data-label="어학"><span class="pill warn">확인필요</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.22</div>
-            <span class="dday ">D-8</span>
-            <div class="meta">공무원 · -</div>
-          </td>
-        </tr>
-        <tr data-eng="필수" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국해양진흥공사</div>
+            <div class="org">한국학중앙연구원</div>
             <span class="src alio">알리오</span>
           </td>
           <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304450" target="_blank" rel="noopener">한국해양진흥공사 하반기 정규직(신입사원) 채용</a>
-            <div class="fields">일반정규직 정보기술(IT)</div>
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304513" target="_blank" rel="noopener">행정직 채용 공고</a>
+            
+            <div class="fields">행정직</div>
+          </td>
+          <td data-label="지역">경기</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            <div class="region">비수도권 지역인재</div>
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.17</div>
+            <span class="dday urgent">D-3</span>
+            <div class="meta">정규직</div>
+          </td>
+        </tr>
+        <tr data-eng="확인필요" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">부산항만공사</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304555" target="_blank" rel="noopener">부산항만공사 정규직(신입) 채용 공고</a>
+            
+            <div class="fields">사무(일반)</div>
           </td>
           <td data-label="지역">부산</td>
-          <td data-label="어학"><span class="pill bad">필수</span></td>
+          <td data-label="어학"><span class="pill warn">확인필요</span></td>
+          <td data-label="전공"><span class="pill ok">무관</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.17</div>
+            <span class="dday urgent">D-3</span>
+            <div class="meta">정규직</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">88관광개발(주)</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304626" target="_blank" rel="noopener">88관광개발(주) - 경리직 채용공고</a>
+            
+            <div class="fields">경리업무(사무직군)</div>
+          </td>
+          <td data-label="지역">경기</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
           <td data-label="전공"><span class="pill ok">언급없음</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.15</div>
-            <span class="dday urgent">D-1</span>
-            <div class="meta">정규직 · 학력무관</div>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
           </td>
-        </tr>
-        <tr data-eng="필수" data-major="무관">
-          <td data-label="기관">
-            <div class="org">한국가스공사</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304489" target="_blank" rel="noopener">2026년 하반기 일반직(신입, 경력), 연구직 및 별정직 채용공고</a>
-            <div class="fields">일반직(신입, 6급) - 전산</div>
-          </td>
-          <td data-label="지역">서울 외 14</td>
-          <td data-label="어학"><span class="pill bad">필수</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.15</div>
-            <span class="dday urgent">D-1</span>
-            <div class="meta">정규직 · 학력무관,석사</div>
-          </td>
-        </tr>
-        <tr data-eng="필수" data-major="무관">
-          <td data-label="기관">
-            <div class="org">한국장학재단</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304490" target="_blank" rel="noopener">한국장학재단 2026년 하반기 종합직 채용 공고(일반행정, IT 개발운영, 시설관리(경력))</a>
-            <div class="fields">5급-IT 개발운영</div>
-          </td>
-          <td data-label="지역">대구</td>
-          <td data-label="어학"><span class="pill bad">필수</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.15</div>
-            <span class="dday urgent">D-1</span>
-            <div class="meta">정규직 · 학력무관</div>
-          </td>
-        </tr>
-        <tr data-eng="필수" data-major="무관">
-          <td data-label="기관">
-            <div class="org">인천국제공항공사</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304492" target="_blank" rel="noopener">2026년 신입직원(일반직, 안전보안직) 채용 공고</a>
-            <div class="fields">전산 · 통신</div>
-          </td>
-          <td data-label="지역">인천</td>
-          <td data-label="어학"><span class="pill bad">필수</span></td>
-          <td data-label="전공"><span class="pill ok">무관</span></td>
-          <td data-label="마감">
-            <div class="due">2026.09.15</div>
-            <span class="dday urgent">D-1</span>
-            <div class="meta">정규직 · 학력무관</div>
-          </td>
-        </tr>
-        <tr data-eng="필수" data-major="언급없음">
-          <td data-label="기관">
-            <div class="org">한국투자공사</div>
-            <span class="src alio">알리오</span>
-          </td>
-          <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304335" target="_blank" rel="noopener">한국투자공사 2026년 신입직원 채용</a>
-            <div class="fields">IT</div>
-          </td>
-          <td data-label="지역">서울</td>
-          <td data-label="어학"><span class="pill bad">필수</span></td>
-          <td data-label="전공"><span class="pill ok">언급없음</span></td>
           <td data-label="마감">
             <div class="due">2026.09.18</div>
             <span class="dday soon">D-4</span>
-            <div class="meta">정규직 · 학력무관</div>
+            <div class="meta">정규직</div>
           </td>
         </tr>
-        <tr data-eng="필수" data-major="제한있음">
+        <tr data-eng="없음" data-edu="무관">
           <td data-label="기관">
-            <div class="org">한국전력공사</div>
+            <div class="org">한국산림복지진흥원</div>
             <span class="src alio">알리오</span>
           </td>
           <td data-label="공고">
-            <a href="https://job.alio.go.kr/recruitview.do?idx=304551" target="_blank" rel="noopener">2026년도 하반기 4직급 대졸수준 신입사원 채용공고</a>
-            <div class="fields">ICT</div>
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304615" target="_blank" rel="noopener">2026년도 하반기 한국산림복지진흥원 공무직 채용 공고</a>
+            
+            <div class="fields">(공개경쟁) 공무직 일반행정(본원(대전)) · (공개경쟁) 공무직 일반행정(국립횡성숲체원) · (공개경쟁) 공무직 일반행정(국립대전숲체원) · (공개경쟁) 공무직 일반행정(국립나주숲체원) · (공개경쟁) 공무직 일반행정(국립김해숲체원) · (제한경쟁) 공무직(장애) 일반행정(본원(대전))</div>
           </td>
-          <td data-label="지역">서울 외 15</td>
-          <td data-label="어학"><span class="pill bad">필수</span></td>
-          <td data-label="전공"><span class="pill bad">제한있음</span></td>
+          <td data-label="지역">대전 외 5</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
           <td data-label="마감">
-            <div class="due">2026.09.16</div>
-            <span class="dday urgent">D-2</span>
-            <div class="meta">정규직 · 학력무관</div>
+            <div class="due">2026.09.21</div>
+            <span class="dday soon">D-7</span>
+            <div class="meta">무기계약직</div>
+          </td>
+        </tr>
+        <tr data-eng="확인필요" data-edu="확인필요">
+          <td data-label="기관">
+            <div class="org">기후에너지환경부 전북지방환경청</div>
+            <span class="src gov">나라일터</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://www.gojobs.go.kr/apmView_recruit.do?menuNo=401&flag=U&searchJobsecode=020&empmnsn=303504" target="_blank" rel="noopener">\26년 야생조류 AI 예찰 인력 채용 서류심사 결과 및 면접심사 공고</a>
+            
+            <div class="fields">공고 제목 기준</div>
+          </td>
+          <td data-label="지역">-</td>
+          <td data-label="어학"><span class="pill warn">확인필요</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill warn">확인필요</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.21</div>
+            <span class="dday soon">D-7</span>
+            <div class="meta">공무원</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">한국전력기술주식회사</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304717" target="_blank" rel="noopener">2026년도 하반기 정규직(신입사원) 채용공고</a>
+            
+            <div class="fields">사무(대졸수준) · 전산(대졸수준)</div>
+          </td>
+          <td data-label="지역">경북</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.22</div>
+            <span class="dday ">D-8</span>
+            <div class="meta">정규직</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">(재)한국우편사업진흥원</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304896" target="_blank" rel="noopener">한국우편사업진흥원 2026년 신입직원(일반직, 전문직(사무), 전문직(특수)) 채용</a>
+            
+            <div class="fields">일반직_전자우편 서비스 마케팅·운영 · 일반직_전자우편 시스템 관리 · 일반직_전시회 기획·운영 · 일반직_문화우편상품 마케팅 · 일반직_전자상거래지원센터 사업 운영 · 일반직_임대 관리 · 전문직(사무)_우체국쇼핑 협업사업 관리 · 전문직(사무)_우체국쇼핑 품질 관리 · 전문직(사무)_개인정보보호 · 전문직(사무)_경영정보시스템 개발 및 유지보수</div>
+          </td>
+          <td data-label="지역">서울 외 1</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">무관</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.25</div>
+            <span class="dday ">D-11</span>
+            <div class="meta">무기계약직 외 1</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">재단법인 한국장기조직기증원</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304880" target="_blank" rel="noopener">(재)한국장기조직기증원 2026년 제4차 공개채용</a>
+            
+            <div class="fields">행정(기획예산)(공무직/서울) · 행정(회계)(공무직/서울)</div>
+          </td>
+          <td data-label="지역">서울 외 2</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.28</div>
+            <span class="dday ">D-14</span>
+            <div class="meta">무기계약직 외 2</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">세계김치연구소</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304899" target="_blank" rel="noopener">[세계김치연구소] 2026년 제8차 직원 채용 공고</a>
+            
+            <div class="fields">별정직(위촉행정원): 공개경쟁채용</div>
+          </td>
+          <td data-label="지역">전남광주</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.28</div>
+            <span class="dday ">D-14</span>
+            <div class="meta">무기계약직 외 1</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">한국연구재단</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304945" target="_blank" rel="noopener">2026년 제2차 한국연구재단 직원 채용(연구직, 공무직(사무지원직))</a>
+            
+            <div class="fields">(연구직) 이공계 - ICT·융합 · (공무직(사무지원직)) 사회형평(서울)</div>
+          </td>
+          <td data-label="지역">서울 외 1</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.29</div>
+            <span class="dday ">D-15</span>
+            <div class="meta">무기계약직 외 2</div>
+          </td>
+        </tr>
+        <tr data-eng="확인필요" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">무역안보관리원</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304952" target="_blank" rel="noopener">2026년도 하반기 무역안보관리원 무기계약직 신입직원 채용 공고</a>
+            
+            <div class="fields">무기계약직(총무)</div>
+          </td>
+          <td data-label="지역">서울</td>
+          <td data-label="어학"><span class="pill warn">확인필요</span></td>
+          <td data-label="전공"><span class="pill ok">언급없음</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            <div class="region">비수도권 지역인재</div>
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.09.29</div>
+            <span class="dday ">D-15</span>
+            <div class="meta">무기계약직</div>
+          </td>
+        </tr>
+        <tr data-eng="없음" data-edu="무관">
+          <td data-label="기관">
+            <div class="org">중소기업기술정보진흥원</div>
+            <span class="src alio">알리오</span>
+          </td>
+          <td data-label="공고">
+            <a href="https://job.alio.go.kr/recruitview.do?idx=304960" target="_blank" rel="noopener">2026년 제2차 공무직(보훈, 장애) 채용 공고</a>
+            
+            <div class="fields">사무원(장애)</div>
+          </td>
+          <td data-label="지역">세종</td>
+          <td data-label="어학"><span class="pill ok">없음</span></td>
+          <td data-label="전공"><span class="pill ok">무관</span></td>
+          <td data-label="학력">
+            <span class="pill ok">무관</span>
+            <div class="region">비수도권 지역인재</div>
+          </td>
+          <td data-label="마감">
+            <div class="due">2026.10.07</div>
+            <span class="dday ">D-23</span>
+            <div class="meta">무기계약직</div>
           </td>
         </tr></tbody>
       </table>
@@ -509,7 +479,8 @@
   <p class="note">
     제목 아래 <b style="color:#16a34a">초록색 글씨</b>가 그 공고에서 실제로 뽑는 전산 계열 모집분야야. 전산 분야가 없는 공고는 목록에서 뺐어.<br>
     <b>어학 / 전공</b>은 공고의 <b>응시자격</b> 항목만 읽어 판정했어. <b>평가반영</b>은 지원자격은 아니지만 서류 점수에 반영되는 경우,
-    <b>확인필요</b>는 자격요건이 첨부 공고문에만 있어 직접 봐야 하는 경우야 (지방공기업·나라일터가 대부분 여기 해당).<br>
+    <b>확인필요</b>는 자동 판정이 어려워 직접 봐야 하는 경우야 (지방공기업·나라일터가 대부분 여기 해당).<br>
+    알리오 공고는 <b>첨부된 채용 공고문 PDF까지 내려받아</b> 어학 기준·학위 요건·지역인재 조항을 찾아봤어. 석사·박사만 지원할 수 있는 공고는 아예 목록에서 뺐고, 특정 지역 출신을 우대하는 조항이 있으면 학력 칸 아래에 표시했어.<br>
     통합채용은 분야마다 조건이 달라 자동 판정이 틀릴 수 있으니, 지원 전엔 공고문 원본을 꼭 확인해.
   </p>
 </div>
@@ -519,7 +490,7 @@
   function apply() {
     var shown = 0;
     document.querySelectorAll('#tbody tr[data-eng]').forEach(function (tr) {
-      var hide = (he.checked && tr.dataset.eng === '필수') || (hm.checked && tr.dataset.major === '제한있음');
+      var hide = (he.checked && tr.dataset.eng === '확인필요') || (hm.checked && tr.dataset.edu === '확인필요');
       tr.hidden = hide;
       if (!hide) shown++;
     });
