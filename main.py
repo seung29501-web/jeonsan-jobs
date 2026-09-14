@@ -1,5 +1,6 @@
 import io
 import re
+import zipfile
 import time
 import requests
 from bs4 import BeautifulSoup
@@ -375,35 +376,56 @@ def fetch_list(session, max_pages=10):
     return items
 
 
-def notice_text(session, html, max_pages=30):
-    """첨부된 채용 공고문 PDF를 받아 본문 텍스트를 뽑는다.
-
-    알리오 상세페이지의 응시자격은 요약이라 "학력·전공 제한 없음"만 적어두고
-    실제 어학 기준·지역인재 조항은 공고문 PDF에만 있는 경우가 많다.
-    """
-    soup = BeautifulSoup(html, "html.parser")
-    target = None
-    for a in soup.select("a[href*='download.json']"):
-        name = a.get_text(strip=True)
-        if not name.lower().endswith(".pdf"):
-            continue
-        if "공고" in name:
-            target = a["href"]
-            break
-        target = target or a["href"]
-    if not target:
-        return ""
-
+def pdf_text(blob, max_pages=30):
     try:
-        resp = session.get(target, timeout=60)
-        if not resp.content.startswith(b"%PDF"):
-            return ""
-        reader = PdfReader(io.BytesIO(resp.content))
-        pages = (page.extract_text() or "" for page in reader.pages[:max_pages])
-        return re.sub(r"[ \t]+", " ", "\n".join(pages))
-    except Exception as e:
-        print(f"    공고문 PDF 읽기 실패: {type(e).__name__}")
+        reader = PdfReader(io.BytesIO(blob))
+        return "\n".join((page.extract_text() or "") for page in reader.pages[:max_pages])
+    except Exception:
         return ""
+
+
+def notice_text(session, html, max_files=4):
+    """첨부된 채용 공고문에서 본문 텍스트를 뽑는다.
+
+    알리오 상세페이지의 응시자격은 요약이라 "채용분야별 응시자격 : 채용공고 참조"처럼
+    넘겨버리는 곳이 많고, 실제 어학 기준·자격증 배점은 첨부파일에만 있다.
+    첨부는 PDF 그대로인 경우도 있고 ZIP으로 묶여 있는 경우도 있어 둘 다 처리한다.
+    """
+    links = []
+    for a in BeautifulSoup(html, "html.parser").select("a[href*='download.json']"):
+        name = a.get_text(strip=True).lower()
+        if name.endswith((".pdf", ".zip")):
+            # 공고문을 먼저 보고, 없으면 나머지 첨부라도 본다.
+            links.append((0 if "공고" in name else 1, a["href"]))
+    if not links:
+        return ""
+
+    chunks = []
+    for _, href in sorted(links)[:max_files]:
+        try:
+            blob = session.get(href, timeout=90).content
+        except Exception as e:
+            print(f"    첨부 내려받기 실패: {type(e).__name__}")
+            continue
+
+        if blob[:4] == b"%PDF":
+            chunks.append(pdf_text(blob))
+        elif blob[:2] == b"PK":
+            try:
+                archive = zipfile.ZipFile(io.BytesIO(blob))
+            except Exception:
+                continue
+            for info in archive.infolist():
+                if not info.filename.lower().endswith(".pdf"):
+                    continue
+                try:
+                    chunks.append(pdf_text(archive.read(info)))
+                except Exception:
+                    continue
+        if sum(len(c) for c in chunks) > 200_000:
+            break
+
+    return re.sub(r"[ \t]+", " ", "\n".join(chunks))
 
 
 def enrich(session, jobs):
