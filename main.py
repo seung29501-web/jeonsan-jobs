@@ -239,7 +239,7 @@ def parse_detail(html):
     return fields, sections, positions
 
 
-def judge(fields, sections, positions, title, notice=""):
+def judge(fields, sections, positions, title, notice="", notice_ok=True):
     """공고 하나를 판정해 결과를 dict로 돌려준다.
 
     통합채용은 공고 전체가 "학력·전공 제한 없음"이어도 분야마다 조건이 달라서,
@@ -257,6 +257,9 @@ def judge(fields, sections, positions, title, notice=""):
     elif ENG_NONE.search(basis):
         eng = "없음"
     elif ENG_ANY.search(basis):
+        eng = "확인필요"
+    elif not notice_ok:
+        # 첨부 공고문을 못 읽었으면 어학 요건이 없다고 단정할 수 없다.
         eng = "확인필요"
     else:
         eng = "없음"
@@ -398,14 +401,15 @@ def notice_text(session, html, max_files=4):
             # 공고문을 먼저 보고, 없으면 나머지 첨부라도 본다.
             links.append((0 if "공고" in name else 1, a["href"]))
     if not links:
-        return ""
+        return "", False
 
-    chunks = []
+    chunks, failed = [], False
     for _, href in sorted(links)[:max_files]:
         try:
-            blob = session.get(href, timeout=90).content
+            blob = request(session, href, tries=3).content
         except Exception as e:
             print(f"    첨부 내려받기 실패: {type(e).__name__}")
+            failed = True
             continue
 
         if blob[:4] == b"%PDF":
@@ -425,7 +429,9 @@ def notice_text(session, html, max_files=4):
         if sum(len(c) for c in chunks) > 200_000:
             break
 
-    return re.sub(r"[ \t]+", " ", "\n".join(chunks))
+    text = re.sub(r"[ \t]+", " ", "\n".join(chunks))
+    # 첨부가 있는데 한 글자도 못 읽었으면 판정 근거가 없다는 뜻이다.
+    return text, not (failed and not text)
 
 
 def enrich(session, jobs):
@@ -446,12 +452,14 @@ def enrich(session, jobs):
                 drop("전산·사무 분야 없음")
                 continue
 
-            job.update(judge(fields, sections, positions, job["title"],
-                             notice_text(session, resp.text)))
+            notice, notice_ok = notice_text(session, resp.text)
+            job.update(judge(fields, sections, positions, job["title"], notice, notice_ok))
+            job["notice_ok"] = notice_ok
         except Exception as e:
             print(f"  상세 조회 실패 ({job['org']}): {e}")
             job.update(eng="확인필요", major="언급없음", edu="확인필요", fit="확인필요",
-                       it_fields=[], blocked=[], region="", cert=False, edu_raw="-", kinds=["IT"])
+                       it_fields=[], blocked=[], region="", cert=False, edu_raw="-", kinds=["IT"],
+                       notice_ok=False)
 
         # 요청한 조건에 어긋나는 공고는 목록에서 뺀다.
         if job["fit"] == "막힘":
@@ -511,7 +519,7 @@ def fetch_cleaneye():
                     # 클린아이는 상세 자격요건을 첨부 공고문에만 두는 곳이 많아 자동 판정을 하지 않는다.
                     "eng": "확인필요", "major": "언급없음", "fit": "확인필요",
                     "it_fields": ["정보통신 분야"], "edu": "확인필요", "region": "",
-                    "edu_raw": "-", "blocked": [], "cert": False, "kinds": ["IT"],
+                    "edu_raw": "-", "blocked": [], "cert": False, "kinds": ["IT"], "notice_ok": False,
                 })
         if not jobs:
             note = latest_closed(session)
@@ -593,7 +601,7 @@ def fetch_gojobs(max_pages=12):
                     # 나라일터도 자격요건이 첨부 공고문에만 있어 자동 판정하지 않는다.
                     "eng": "확인필요", "major": "언급없음", "fit": "확인필요",
                     "it_fields": ["공고 제목 기준"], "edu": "확인필요", "region": "",
-                    "edu_raw": "-", "blocked": [], "cert": False, "kinds": ["IT"],
+                    "edu_raw": "-", "blocked": [], "cert": False, "kinds": ["IT"], "notice_ok": False,
                 })
     except Exception as e:
         print(f"[나라일터] 수집 실패 ({type(e).__name__})")
@@ -674,6 +682,7 @@ def build_html(jobs, sources):
           <td data-label="공고">
             <a href="{job['link']}" target="_blank" rel="noopener">{job['title']}</a>
             {'<span class="cert">정보처리·빅데이터 우대</span>' if job['cert'] else ''}
+            {'<span class="warnflag">공고문 확인 못함</span>' if not job.get('notice_ok', True) else ''}
             <div class="fields">{fields}</div>
           </td>
           <td data-label="지역">{job['location']}</td>
@@ -771,6 +780,8 @@ def build_html(jobs, sources):
   .pill.bad {{ background: var(--bad-bg); color: var(--bad-fg); }}
   .cert {{ display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
           font-size: 10.5px; font-weight: 800; background: var(--ok-bg); color: var(--ok-fg); }}
+  .warnflag {{ display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+              font-size: 10.5px; font-weight: 800; background: var(--warn-bg); color: var(--warn-fg); }}
   .region {{ margin-top: 5px; font-size: 10.5px; color: var(--warn-fg); font-weight: 700; }}
   .due {{ font-weight: 600; white-space: nowrap; }}
   .dday {{ display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 6px;
